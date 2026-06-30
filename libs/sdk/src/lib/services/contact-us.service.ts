@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { EnvLoader } from '../loader';
 import { ResourceService } from './resource.service';
+import { apiHelpers } from '../helpers';
 
 export interface ContactUsPayload {
   name: string;
@@ -24,7 +25,7 @@ export class ContactUsService extends ResourceService<any> {
   }
 
   getApiVersions(): string {
-    return 'v3';
+    return apiHelpers.API_V_3;
   }
 
   getResourceUrl(): string {
