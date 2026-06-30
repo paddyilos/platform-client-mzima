@@ -8,6 +8,7 @@ import {
   SiteConfigInterface,
 } from '@models';
 import { generalHelpers, UserInterface } from '@mzima-client/sdk';
+import { EnvService } from './env.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -100,7 +101,7 @@ export class SessionService {
     this._deploymentInfo.next({
       title: this.currentConfig['site']?.name ?? '',
       description: this.currentConfig['site']?.description ?? '',
-      logo: this.currentConfig['site']?.image_header ?? '',
+      logo: this.resolveMediaUrl(this.currentConfig['site']?.image_header ?? ''),
       private: this.currentConfig['site']?.private ?? false,
       email: this.currentConfig['site']?.email ?? '',
     });
@@ -149,6 +150,13 @@ export class SessionService {
 
   set configLoaded(configLoaded: boolean) {
     this._configLoaded.next(configLoaded);
+  }
+
+  private resolveMediaUrl(path: string): string {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    const base = (EnvService.ENV?.backend_url ?? '').replace(/\/$/, '');
+    return base + path;
   }
 
   get currentAuthTokenType() {
