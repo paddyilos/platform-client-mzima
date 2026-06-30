@@ -1,0 +1,11 @@
+<div class="about-us-page">
+  <h1>About Us</h1>
+
+  <div *ngIf="loading" class="loading">Loading…</div>
+
+  <div *ngIf="!loading && content" class="content">{{ content }}</div>
+
+  <div *ngIf="!loading && !content" class="empty">
+    Content for this page has not been added yet.
+  </div>
+</div>

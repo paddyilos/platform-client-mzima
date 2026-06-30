@@ -1,0 +1,20 @@
+.about-us-page {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 24px;
+
+  h1 {
+    margin-bottom: 24px;
+  }
+}
+
+.content {
+  white-space: pre-line;
+  color: #333;
+  line-height: 1.6;
+}
+
+.loading,
+.empty {
+  color: #777;
+}

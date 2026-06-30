@@ -119,6 +119,14 @@ export class SettingsComponent implements OnInit {
         router: 'webhooks',
         visible: this.isAdmin || this.isManageSettings,
       },
+      // Liberia custom: About Us content
+      {
+        title: 'About Us Content',
+        description: 'Edit the text shown on the public About Us page',
+        icon: 'general',
+        router: 'about-us-content',
+        visible: this.isAdmin || this.isManageSettings,
+      },
     ];
   }
 }

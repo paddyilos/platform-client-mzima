@@ -1,0 +1,13 @@
+.about-us-content-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+
+  mat-form-field {
+    width: 100%;
+  }
+  button {
+    align-self: flex-start;
+  }
+}

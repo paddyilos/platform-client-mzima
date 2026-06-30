@@ -112,6 +112,17 @@ const routes: Routes = [
           guards: [AdminGuard, ManageSettingsGuard],
         },
       },
+      // Liberia custom: About Us content (see ../../liberia/liberia.routes.ts for the public page)
+      {
+        path: 'about-us-content',
+        loadChildren: () =>
+          import('./about-us-content/about-us-content.module').then((m) => m.AboutUsContentModule),
+        canActivate: [CombinedGuard],
+        data: {
+          breadcrumb: 'About Us Content',
+          guards: [AdminGuard, ManageSettingsGuard],
+        },
+      },
     ],
   },
 ];

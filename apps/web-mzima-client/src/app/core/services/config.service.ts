@@ -31,6 +31,12 @@ export class ConfigService {
     );
   }
 
+  getByGroup(id: string | number): Observable<any> {
+    return this.httpClient.get(
+      `${this.env.environment.backend_url + this.getApiVersions() + this.getResourceUrl()}/${id}`,
+    );
+  }
+
   private getConfig(): Observable<any> {
     return this.httpClient
       .get(`${this.env.environment.backend_url + this.getApiVersions() + this.getResourceUrl()}`)

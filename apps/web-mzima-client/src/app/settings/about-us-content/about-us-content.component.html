@@ -1,0 +1,13 @@
+<h1>About Us Content</h1>
+<p>This text is shown publicly on the About Us page.</p>
+
+<form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="about-us-content-form">
+  <mat-form-field appearance="outline">
+    <mat-label>Content</mat-label>
+    <textarea matInput formControlName="content" rows="12"></textarea>
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+    {{ saving ? 'Saving...' : 'Save' }}
+  </button>
+</form>
