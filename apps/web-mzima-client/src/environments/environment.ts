@@ -1,6 +1,11 @@
 export const environment = {
   production: false,
-  backend_url: 'https://tuxpiper.api.ushahidi.io/',
+  backend_url: 'http://localhost:8082/',
+  riskMapOptions: [
+    { name: 'CURRENT_RISK', label: '2023 –', isDefault: true },
+    { name: 'EXTENDED_RISK', label: '2018 – 2022', isDefault: false },
+    { name: 'FORECASTED_RISK', label: 'Forecasted', isDefault: false },
+  ],
   api_v3: 'api/v3/',
   api_v5: 'api/v5/',
   mapbox_api_key:
