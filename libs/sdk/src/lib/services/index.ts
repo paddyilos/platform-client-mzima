@@ -20,3 +20,5 @@ export * from './webhooks.service';
 export * from './switch-api.service';
 export * from './hxl.service';
 export * from './messages.service';
+export * from './alerts.service';
+export * from './contact-us.service';

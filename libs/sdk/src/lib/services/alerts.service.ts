@@ -1,0 +1,37 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { EnvLoader } from '../loader';
+import { ResourceService } from './resource.service';
+
+export interface AlertPayload {
+  radius: number;
+  email: string;
+  latitude: string;
+  longitude: string;
+  categories?: number[];
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AlertsService extends ResourceService<any> {
+  constructor(
+    protected override httpClient: HttpClient,
+    protected override currentLoader: EnvLoader,
+  ) {
+    super(httpClient, currentLoader);
+  }
+
+  getApiVersions(): string {
+    return 'v3';
+  }
+
+  getResourceUrl(): string {
+    return 'get-alerts';
+  }
+
+  subscribe(payload: AlertPayload): Observable<any> {
+    return super.post(payload);
+  }
+}
