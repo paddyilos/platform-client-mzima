@@ -15,6 +15,7 @@ import { PostNotFoundComponent } from './post/post-not-found/post-not-found.comp
 import { PostNotAllowedComponent } from './post/post-not-allowed/post-not-allowed.component';
 import { PostResolver } from './core/resolvers/post-resolver';
 import { DeploymentNotFoundComponent } from './shared/components/deployment-not-found/deployment-not-found.component';
+import { liberiaRoutes } from './liberia/liberia.routes';
 
 const routes: Routes = [
   {
@@ -49,6 +50,8 @@ const routes: Routes = [
       ogTitle: 'nav.activity',
     },
   },
+  // Liberia custom routes — see ./liberia/liberia.routes.ts
+  ...liberiaRoutes,
   {
     path: 'settings',
     loadChildren: () => import('./settings/settings.module').then((m) => m.SettingsModule),

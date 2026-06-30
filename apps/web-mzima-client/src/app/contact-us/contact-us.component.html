@@ -1,0 +1,49 @@
+<div class="contact-us-page">
+  <h1>Contact Us</h1>
+  <p>
+    For any further information or requests, please contact the Peacebuilding Office using the form
+    below.
+  </p>
+
+  <div *ngIf="submitted" class="success-message">
+    <p>Thank you for your message. We will get back to you within the shortest delay possible.</p>
+  </div>
+
+  <form *ngIf="!submitted" [formGroup]="form" (ngSubmit)="submit()" class="contact-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Full name</mat-label>
+      <input matInput formControlName="name" />
+      <mat-error>Name is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email address</mat-label>
+      <input matInput formControlName="email" type="email" />
+      <mat-error *ngIf="form.get('email')?.hasError('required')">Email is required</mat-error>
+      <mat-error *ngIf="form.get('email')?.hasError('email')"
+        >Enter a valid email address</mat-error
+      >
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Phone number (optional)</mat-label>
+      <input matInput formControlName="phone_number" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Subject</mat-label>
+      <input matInput formControlName="subject" />
+      <mat-error>Subject is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Message</mat-label>
+      <textarea matInput formControlName="message" rows="6"></textarea>
+      <mat-error>Message is required</mat-error>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Sending...' : 'Send Message' }}
+    </button>
+  </form>
+</div>

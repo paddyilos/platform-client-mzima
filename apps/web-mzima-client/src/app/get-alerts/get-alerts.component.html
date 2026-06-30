@@ -1,0 +1,47 @@
+<div class="get-alerts-page">
+  <h1>Get Incident Alerts</h1>
+  <p>
+    Subscribe to receive email notifications when incidents are reported near your location in
+    Liberia.
+  </p>
+
+  <div *ngIf="submitted" class="success-message">
+    <p>You have successfully subscribed to iReport Liberia incident alerts.</p>
+    <p>
+      Check your inbox for a confirmation. You can unsubscribe at any time via the link in each
+      email.
+    </p>
+  </div>
+
+  <form *ngIf="!submitted" [formGroup]="form" (ngSubmit)="submit()" class="alerts-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Email address</mat-label>
+      <input matInput formControlName="email" type="email" placeholder="your@email.com" />
+      <mat-error *ngIf="form.get('email')?.hasError('required')">Email is required</mat-error>
+      <mat-error *ngIf="form.get('email')?.hasError('email')"
+        >Enter a valid email address</mat-error
+      >
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Alert radius (km)</mat-label>
+      <mat-select formControlName="radius">
+        <mat-option *ngFor="let r of radiusOptions" [value]="r">{{ r }} km</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Latitude</mat-label>
+      <input matInput formControlName="latitude" placeholder="e.g. 6.3" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Longitude</mat-label>
+      <input matInput formControlName="longitude" placeholder="e.g. -10.8" />
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Subscribing...' : 'Subscribe to Alerts' }}
+    </button>
+  </form>
+</div>
