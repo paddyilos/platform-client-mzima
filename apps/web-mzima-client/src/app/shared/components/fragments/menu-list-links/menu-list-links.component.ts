@@ -78,19 +78,19 @@ export class MenuListLinksComponent extends BaseComponent implements OnInit {
       {
         label: 'Get Alerts',
         router: 'get-alerts',
-        icon: 'info',
+        icon: 'warning',
         ref: 'get-alerts',
       },
       {
         label: 'About Us',
         router: 'about-us',
-        icon: 'info',
+        icon: 'info-circle',
         ref: 'about-us',
       },
       {
         label: 'Contact Us',
         router: 'contact-us',
-        icon: 'info',
+        icon: 'share',
         ref: 'contact-us',
       },
     ];
