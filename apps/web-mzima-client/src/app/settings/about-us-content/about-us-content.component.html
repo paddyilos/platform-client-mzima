@@ -1,13 +1,70 @@
 <h1>About Us Content</h1>
-<p>This text is shown publicly on the About Us page.</p>
+<p>This content is shown publicly on the About Us page.</p>
 
 <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="about-us-content-form">
+  <div class="form-row">
+    <mat-label>Header image</mat-label>
+    <app-file-uploader
+      [imageSrc]="image"
+      (fileUpload)="headerImageUploaded($event)"
+      (delete)="headerImageDeleted()"
+    >
+    </app-file-uploader>
+  </div>
+
+  <h2>Who We Are</h2>
   <mat-form-field appearance="outline">
-    <mat-label>Content</mat-label>
-    <textarea matInput formControlName="content" rows="12"></textarea>
+    <mat-label>Title</mat-label>
+    <input matInput formControlName="who_we_are_title" />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Description</mat-label>
+    <textarea matInput formControlName="who_we_are_description" rows="8"></textarea>
   </mat-form-field>
 
-  <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+  <h2>How We Work</h2>
+  <mat-form-field appearance="outline">
+    <mat-label>Title</mat-label>
+    <input matInput formControlName="how_we_work_title" />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Description</mat-label>
+    <textarea matInput formControlName="how_we_work_description" rows="8"></textarea>
+  </mat-form-field>
+
+  <div class="form-row">
+    <mat-label>Partner logos</mat-label>
+    <app-file-uploader
+      [multiple]="true"
+      [imageSrc]="logos"
+      (fileUpload)="logoUploaded($event)"
+      (delete)="logoDeleted($event)"
+    >
+    </app-file-uploader>
+  </div>
+
+  <h2>Donors</h2>
+  <mat-form-field appearance="outline">
+    <mat-label>Title</mat-label>
+    <input matInput formControlName="donors_title" />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Description</mat-label>
+    <textarea matInput formControlName="donors_description" rows="4"></textarea>
+  </mat-form-field>
+
+  <div class="form-row">
+    <mat-label>Donor logos</mat-label>
+    <app-file-uploader
+      [multiple]="true"
+      [imageSrc]="donorLogos"
+      (fileUpload)="donorLogoUploaded($event)"
+      (delete)="donorLogoDeleted($event)"
+    >
+    </app-file-uploader>
+  </div>
+
+  <button mat-raised-button color="primary" type="submit" [disabled]="saving">
     {{ saving ? 'Saving...' : 'Save' }}
   </button>
 </form>

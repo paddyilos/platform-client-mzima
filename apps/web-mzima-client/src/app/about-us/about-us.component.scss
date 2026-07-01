@@ -1,5 +1,5 @@
 .about-us-page {
-  max-width: 600px;
+  max-width: 800px;
   margin: 40px auto;
   padding: 0 24px;
 
@@ -8,10 +8,41 @@
   }
 }
 
-.content {
-  white-space: pre-line;
+.header-image {
+  max-width: 100%;
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin: 16px 0;
+
+  img {
+    max-height: 64px;
+    max-width: 160px;
+    object-fit: contain;
+  }
+}
+
+.content-section {
+  margin-bottom: 32px;
+
+  h2 {
+    margin-bottom: 12px;
+  }
+}
+
+.description {
   color: #333;
   line-height: 1.6;
+
+  ::ng-deep ul {
+    padding-left: 20px;
+  }
 }
 
 .loading,

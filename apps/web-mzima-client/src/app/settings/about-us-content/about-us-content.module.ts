@@ -7,17 +7,19 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule } from '@ngx-translate/core';
 import { AboutUsContentRoutingModule } from './about-us-content-routing.module';
 import { AboutUsContentComponent } from './about-us-content.component';
+import { SettingsModule } from '../settings.module';
 
 @NgModule({
   declarations: [AboutUsContentComponent],
   imports: [
     CommonModule,
+    AboutUsContentRoutingModule,
     ReactiveFormsModule,
     MatInputModule,
     MatButtonModule,
     MatSnackBarModule,
     TranslateModule,
-    AboutUsContentRoutingModule,
+    SettingsModule,
   ],
 })
 export class AboutUsContentModule {}
