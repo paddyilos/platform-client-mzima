@@ -90,7 +90,7 @@ export class MenuListLinksComponent extends BaseComponent implements OnInit {
       {
         label: 'Contact Us',
         router: 'contact-us',
-        icon: 'share',
+        icon: 'info',
         ref: 'contact-us',
       },
     ];
