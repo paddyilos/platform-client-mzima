@@ -41,6 +41,7 @@ stay a fixed size as more pages are added:
 | `apps/web-mzima-client/src/shpjs.d.ts` (new file) | `declare module 'shpjs';` | `shpjs` ships no type declarations; this app's TS config (unlike the old Angular 8 app's) errors on untyped imports, so a minimal ambient module shim is needed. |
 | `package.json` | Added `shpjs` (boundary shapefile parsing) and `buffer` (browser `Buffer` polyfill) dependencies | `shpjs`'s dependency chain (via `jszip`) assumes Node.js `global`/`Buffer`, which this project's webpack 5 build (unlike the old app's webpack 4) no longer polyfills automatically. |
 | `apps/web-mzima-client/src/polyfills.ts` | `window.global = window; window.Buffer = Buffer;` (from the `buffer` package) | Required for `shpjs`/`jszip` to work in the browser under webpack 5 — see above. |
+| `apps/web-mzima-client/src/app/shared/components/fragments/deployment-details/deployment-details.component.html` | Removed the `<span class="menu__logo"><img src=".../ushahidi-logo.svg" ...></span>` block (this component is shared by both the desktop sidebar and the mobile burger menu) | PBO wants the generic "Ushahidi" platform branding logo hidden — it's separate from the deployment's own logo/name (`<app-company-info>`, gated by `checkAllowedAccessToSite()`, still below it and unaffected). `ushahidi-logo.svg` itself is left in place (unused, harmless) rather than deleted. |
 
 **Adding a new Liberia public page:** add an entry to
 `apps/web-mzima-client/src/app/liberia/liberia.routes.ts`, create the
