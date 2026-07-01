@@ -41,7 +41,7 @@
   <div class="form-row">
     <mat-label>{{ 'settings.deployment_logo' | translate }}</mat-label>
     <app-file-uploader
-      [imageSrc]="siteConfig.image_header"
+      [imageSrc]="logoPreviewUrl"
       (fileUpload)="fileUploaded($event)"
       (delete)="headerImageDeleted()"
     >

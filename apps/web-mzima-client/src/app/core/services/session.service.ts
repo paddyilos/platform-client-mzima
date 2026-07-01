@@ -152,7 +152,7 @@ export class SessionService {
     this._configLoaded.next(configLoaded);
   }
 
-  private resolveMediaUrl(path: string): string {
+  resolveMediaUrl(path: string): string {
     if (!path) return '';
     if (path.startsWith('http') || path.startsWith('data:')) return path;
     const base = (EnvService.ENV?.backend_url ?? '').replace(/\/$/, '');

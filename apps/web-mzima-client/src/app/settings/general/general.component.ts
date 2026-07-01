@@ -30,6 +30,7 @@ export class GeneralComponent implements OnInit {
   initialFormValue: any;
   changesMade = false;
   siteConfig: any;
+  logoPreviewUrl: string;
   apiKey: ApiKeysResultInterface;
   uploadedFile?: File;
   minObfuscation = 0;
@@ -63,6 +64,7 @@ export class GeneralComponent implements OnInit {
 
   ngOnInit(): void {
     this.siteConfig = this.sessionService.getSiteConfigurations();
+    this.logoPreviewUrl = this.sessionService.resolveMediaUrl(this.siteConfig.image_header);
 
     this.generalForm.patchValue({
       name: this.siteConfig.name,
@@ -86,11 +88,13 @@ export class GeneralComponent implements OnInit {
 
   fileUploaded(event: any) {
     this.siteConfig.image_header = event.dataURI;
+    this.logoPreviewUrl = event.dataURI;
     this.uploadedFile = event.file;
   }
 
   headerImageDeleted() {
     this.siteConfig.image_header = '';
+    this.logoPreviewUrl = '';
     this.uploadedFile = undefined;
   }
 
