@@ -1,11 +1,13 @@
 # Liberia PBO Custom Features
 
 This fork of `ushahidi/platform-client-mzima` carries a small set of custom
-public pages built for the Liberia Peacebuilding Office (PBO): **Get Alerts**,
-**Contact Us**, and **About Us**. They replace the equivalent pages on the
+pages built for the Liberia Peacebuilding Office (PBO): **Get Alerts**,
+**Contact Us**, **About Us** (public), and **Analysis** / **Analysis
+Templates** (permission-gated). They replace the equivalent pages on the
 old UNICC fork (`/dashboard/get-alerts`, `/dashboard/about-us`,
-`/dashboard/contact-us`), now served flat at `/get-alerts`, `/about-us`,
-`/contact-us`.
+`/dashboard/contact-us`, `/dashboard/analysis`, `/dashboard/analysis-templates`),
+now served flat at `/get-alerts`, `/about-us`, `/contact-us`, `/analysis`,
+`/analysis-templates`.
 
 See `ireport/docs/MIGRATION_PLAN.md` (Phase 3) in the parent repo for the
 full migration background.
@@ -13,9 +15,13 @@ full migration background.
 ## The pattern: minimize the stock-file diff
 
 Every custom page lives in its own self-contained directory
-(`get-alerts/`, `contact-us/`, `about-us/`) — module, routing module,
-component. None of them import shared layout components or guards, so they
-have no dependency surface beyond Angular Material and the SDK.
+(`get-alerts/`, `contact-us/`, `about-us/`, `analysis/`,
+`analysis-templates/`) — module, routing module, component. The public
+pages (`get-alerts`, `contact-us`, `about-us`) import nothing beyond
+Angular Material and the SDK. `analysis`/`analysis-templates` are the one
+exception — they're permission-gated, so their routes do use the stock
+`CombinedGuard` + a new `AccessAnalysisGuard` (see below), same as every
+admin settings route already does.
 
 Stock files are touched as little as possible, and only in ways designed to
 stay a fixed size as more pages are added:
@@ -47,11 +53,26 @@ stay a fixed size as more pages are added:
 | `apps/web-mzima-client/src/app/shared/components/fragments/menu-list-non-links/menu-list-non-links.component.ts` | "Collections"/"Help & Support" items: `visible`/`forDesktop` changed from always-true (or `!private \|\| isLoggedIn`, always-true on this public deployment) to `this.isLoggedIn` for both | PBO wants these hidden for anonymous visitors, visible only once authenticated — same intent as the earlier Activity/Add-new-post login-gating. Reuses the component's own existing `forDesktop`-mirrors-`visible`-for-desktop convention (already used by the login/register item) rather than introducing a new mechanism. |
 | `apps/web-mzima-client/src/app/core/services/search.service.ts` | `countrycodes: 'lr'` added to the Nominatim query params; `format` switched from `json` to `jsonv2` | The filter bar's location search should only surface Liberian results. `jsonv2` exposes the `addresstype` field the component below uses for granularity filtering; `lat`/`lon`/`display_name`/`boundingbox` are unchanged between formats. This service has exactly one consumer (`location-selection.component.ts`), so the restriction is hardcoded rather than made additive like `location-select.component.ts`'s `geocoderCountryCodes`. |
 | `apps/web-mzima-client/src/app/shared/components/location-selection/location-selection.component.ts` | `addresstype` added to the `SearchResponse` interface; new `allowedAddressTypes` allowlist and `filterToLiberiaLocations()` applied to both the debounced search results and the `writeValue` reverse-lookup results before they reach `citiesOptions` | Restricts the filter bar's Location field to city/county/address-level results, per PBO request. The allowlist is deliberately inclusive (`town`/`village`/`hamlet`/`suburb`/`municipality` count as "city", `state` counts as "county") because live Nominatim queries show most Liberian settlements aren't literally tagged `city` in OSM (only Monrovia and Gbarnga are) and all 15 counties are tagged `state` (OSM admin_level 4) — a literal `city`/`county` match would break search for nearly everywhere outside the capital. |
+| `apps/web-mzima-client/src/app/core/enums/roles.ts` | `Permissions.AccessAnalysis = 'Access analysis'` | New permission string, mirrors backend `Permission::ACCESS_ANALYSIS`. Exact string per PBO requirement, not the old UNICC fork's longer `Access analysis and filters section`. |
+| `apps/web-mzima-client/src/app/core/guards/index.ts` | `export { AccessAnalysisGuard } from './access-analysis.guard';` | Barrel export, same convention as every other guard. |
+| `apps/web-mzima-client/src/app/core/interfaces/menu.interface.ts` | New `permission?: string` field on `MenuInterface`, alongside `adminGuard?`/`authGuard?` | Generic per-permission nav-item gating, checked as `isLoggedIn && user.permissions?.includes(item.permission)`. Chosen over a one-off boolean (the `authGuard` precedent) because it means future permission-gated nav items are a one-line addition instead of a new boolean field + computed property + template clause each time. |
+| `apps/web-mzima-client/src/app/shared/components/fragments/menu-list-links/menu-list-links.component.ts` / `.html` | New "Analysis" entry in `initNavigationMenu()` with `permission: Permissions.AccessAnalysis`; template `*ngIf` now also checks `(!item.permission \|\| (isLoggedIn && user.permissions?.includes(item.permission)))` | Analysis nav link visible only to logged-in users holding `Access analysis` — mirrors the existing `adminGuard`/`isHost` and `authGuard`/`isLoggedIn` clauses already on this line. |
+| `apps/web-mzima-client/src/app/core/enums/icons.ts` | `chartBar = 'chart-bar'` | New nav icon for the Analysis link, same pattern as `warning`/`infoCircle`. |
+| `apps/web-mzima-client/src/app/liberia/liberia.routes.ts` | Two new route entries (`analysis`, `analysis-templates`), each with `canActivate: [CombinedGuard]` and `data: { guards: [AccessAnalysisGuard] }` | Routes both new pages, gated identically to the nav link. |
+| `apps/web-mzima-client/src/app/core/guards/combined.guard.ts` | Removed `async` from `canActivate()` and the `Promise<Observable<...>>` return type / `@ts-ignore`; now returns `Observable<boolean \| UrlTree>` directly | **Unrelated real bugfix**, found while testing the Analysis route guard live: `canActivate` was declared `async` while its body `return`ed an Observable (not awaited), so an `async` function auto-wraps that in a resolved `Promise`. Angular's router flattens a Promise-*or*-Observable guard result one level, but not "a Promise that resolves to an Observable" — so it received the inner Observable object itself as the "result", which is truthy and neither `false` nor `UrlTree`, and treated it as **allow**. Confirmed via direct testing: an unauthenticated session could load `/analysis` (a route with no other protection) with real data, while a `[HostGuard, AccessDeniedGuard, DeploymentFoundGuard]`-guarded route redirected correctly — that trio runs at the parent `/settings` route in `app-routing.module.ts` and had been masking `CombinedGuard`'s bug for every existing usage (all 11 are settings child routes, always nested under that outer guard). `/analysis`/`/analysis-templates` are the first top-level routes to rely on `CombinedGuard` alone, which is what surfaced it. Fix has no observable effect on any existing route (all were already blocked by their outer guard either way) and was verified against both a blocked (no permission) and allowed (admin) session after the change. |
+| `libs/sdk/src/lib/services/index.ts` | 1 more barrel export | `AnalysisTemplatesService`. |
+| `apps/web-mzima-client/src/assets/locales/en.json` | New `analysis` top-level translation key block | All Analysis/Analysis Templates page copy. |
 
 **Adding a new Liberia public page:** add an entry to
 `apps/web-mzima-client/src/app/liberia/liberia.routes.ts`, create the
 feature directory the same way as the existing three. Don't touch
 `app-routing.module.ts` directly.
+
+**Adding a new Liberia permission-gated page:** same as above, plus
+`canActivate: [CombinedGuard]` and `data: { guards: [YourGuard] }` on the
+route entry (see `analysis`/`analysis-templates` below), and a matching
+`permission` value on the corresponding `menu-list-links` nav entry so the
+link itself is hidden from users who'd otherwise hit the guard.
 
 **Adding a new admin-editable setting:** prefer the About Us approach below
 over inventing a new table/controller/route.
@@ -82,6 +103,55 @@ thin-layer approach:
   `ConfigService.update('about_us', { content })` to save — the existing
   whole-group `update()` works unmodified because the group only ever has
   one key.
+
+## Analysis / Analysis Templates
+
+Replaces the old UNICC fork's `/dashboard/analysis` (Dashboard + Analysis
+tabs) and `/dashboard/analysis-templates`. The old platform used the
+commercial **Flexmonster** pivot-table widget and `pdfmake`/`html2canvas`
+PDF export — none of that is ported. Charts use `@swimlane/ngx-charts`
+(already a project dependency, used by the stock `activity/bar-chart`
+component) and tabs use `mat-tab-group`.
+
+New isolated files (no stock-file diff beyond the table above):
+
+| File | Purpose |
+|---|---|
+| `apps/web-mzima-client/src/app/core/guards/access-analysis.guard.ts` | Route guard checking `Permissions.AccessAnalysis` from `localStorage`, same pattern as `manage-settings.guard.ts`. |
+| `apps/web-mzima-client/src/app/analysis/**` | `/analysis` page — a `mat-tab-group` shell (`analysis.component.ts`) with a **Dashboard** tab (total reports stat, reports-by-county pie chart, reports-trend line chart — reads `mgmt_lev_1`/`mgmt_lev_2`, aggregated client-side from a filtered post list, plus `GET posts/stats`) and a **Report Builder** tab (ad-hoc filter/group-by/chart-type builder against `GET posts/stats`, with "Save as Template" / "Load Template"). Includes a small `save-template-dialog/` for naming a new template. |
+| `apps/web-mzima-client/src/app/analysis-templates/**` | `/analysis-templates` page — lists all saved templates (`AnalysisTemplatesService`), with Apply (deep-links to `/analysis?template=<id>`), Edit (`rename-template-dialog/`), and Delete (via the stock `ConfirmModalService`) actions. |
+| `libs/sdk/src/lib/services/analysis-templates.service.ts` | CRUD SDK client for `analysis_templates` (`v5/analysis-templates`), generic `ResourceService<T>`-based, same shape as `alerts.service.ts`. |
+| `apps/web-mzima-client/src/assets/icons/chart-bar.svg` | Nav icon, same style/viewBox as the other icons in this set. |
+
+Both pages are gated end-to-end: nav link hidden unless
+`isLoggedIn && Access analysis` (see `menu-list-links` row above), routes
+guarded client-side by `AccessAnalysisGuard`, and the templates CRUD API
+itself re-checks the same permission server-side
+(`AnalysisTemplateController::requireAccessAnalysis()` in the sibling
+`ushahidi-api` fork — see its `LIBERIA_CUSTOM.md`) — the frontend guard
+alone is not the security boundary.
+
+`posts.mgmt_lev_1`/`mgmt_lev_2` (county/district) already existed
+server-side for Get Alerts/LERN import but weren't exposed via the posts
+API; the backend fork adds them to `Post::ALLOWED_FIELDS` (not
+`$fillable` — that governs mass-assignment, not field selection) so the
+Analysis dashboard's county chart can read them from `GET /api/v5/posts`.
+
+Two things worth knowing if you touch the county/district fetch
+(`loadCountyBreakdown()` in `dashboard-tab/`, `previewByLocation()` in
+`report-builder-tab/`), found while testing against the real ~5,700-post
+dataset:
+- `PostsService.searchPosts(url, query, params)` always merges a `q` param
+  in; pass `query` as `''`, never `undefined` — Angular's `HttpClient`
+  serializes an `undefined` param value as the literal string
+  `"undefined"`, which the backend's full-text search then treats as a
+  real (zero-match) search term, silently returning an empty result set.
+- The fetch requests `only: 'id,mgmt_lev_1'` (a stock sparse-fieldset
+  param, `Post::ALLOWED_FIELDS`-backed) rather than full post objects.
+  Fetching ~5,700 full posts (media/translations/allowed_privileges/etc.)
+  in one request exhausts this deployment's 128MB PHP `memory_limit`
+  server-side (`500` with no body); the lean fieldset keeps the payload
+  small regardless of dataset size.
 
 ## get-alerts / contact-us backend
 

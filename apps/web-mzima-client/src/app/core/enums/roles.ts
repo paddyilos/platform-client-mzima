@@ -15,4 +15,6 @@ export enum Permissions {
   EditOwnPosts = 'Edit Their Own Posts',
   DeletePosts = 'Delete Posts',
   DeleteOwnPosts = 'Delete Their Own Posts',
+  // Liberia PBO custom permission — gates the Analysis dashboard/templates feature.
+  AccessAnalysis = 'Access analysis',
 }

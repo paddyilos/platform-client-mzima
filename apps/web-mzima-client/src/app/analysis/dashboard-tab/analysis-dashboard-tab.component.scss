@@ -1,0 +1,45 @@
+.dashboard-tab {
+  padding: 16px 0;
+
+  .filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 24px;
+    border-radius: 8px;
+    background: #fff8ec;
+    max-width: 220px;
+    margin-bottom: 24px;
+
+    &__label {
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    &__value {
+      font-size: 32px;
+      font-weight: 600;
+    }
+  }
+
+  .charts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+
+    .chart-cover {
+      flex: 1 1 420px;
+      min-height: 320px;
+
+      h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+.report-builder-tab {
+  padding: 16px 0;
+
+  .filters,
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-cover {
+    min-height: 360px;
+  }
+}

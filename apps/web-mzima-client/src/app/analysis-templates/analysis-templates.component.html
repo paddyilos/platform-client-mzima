@@ -1,0 +1,40 @@
+<div class="analysis-templates-page">
+  <h1>{{ 'analysis.templates_title' | translate }}</h1>
+
+  <p *ngIf="!templates.length" class="empty-state">
+    {{ 'analysis.templates_empty' | translate }}
+  </p>
+
+  <table class="templates-table" *ngIf="templates.length">
+    <thead>
+      <tr>
+        <th>{{ 'analysis.template_column_name' | translate }}</th>
+        <th>{{ 'analysis.template_column_survey' | translate }}</th>
+        <th>{{ 'analysis.template_column_group_by' | translate }}</th>
+        <th>{{ 'analysis.template_column_chart_type' | translate }}</th>
+        <th>{{ 'analysis.template_column_created' | translate }}</th>
+        <th>{{ 'analysis.template_column_actions' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let template of templates">
+        <td>{{ template.name }}</td>
+        <td>{{ surveyName(template.form_id) }}</td>
+        <td>{{ template.group_by }}</td>
+        <td>{{ template.chart_type }}</td>
+        <td>{{ (template.created ? template.created * 1000 : null) | date : 'mediumDate' }}</td>
+        <td class="actions">
+          <button mat-stroked-button (click)="apply(template)">
+            {{ 'analysis.apply' | translate }}
+          </button>
+          <button mat-stroked-button (click)="edit(template)">
+            {{ 'analysis.edit' | translate }}
+          </button>
+          <button mat-stroked-button color="warn" (click)="delete(template)">
+            {{ 'analysis.delete' | translate }}
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

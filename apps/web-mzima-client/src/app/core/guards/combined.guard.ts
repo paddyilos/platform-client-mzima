@@ -8,11 +8,10 @@ import { concatMap, first, from, Observable, of } from 'rxjs';
 export class CombinedGuard implements CanActivate {
   constructor(private injector: Injector) {}
 
-  // @ts-ignore
-  async canActivate(
+  canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot,
-  ): Promise<Observable<boolean | UrlTree>> {
+  ): Observable<boolean | UrlTree> {
     const guards = route.data['guards'] || [];
     return from(guards).pipe(
       concatMap((value) => {

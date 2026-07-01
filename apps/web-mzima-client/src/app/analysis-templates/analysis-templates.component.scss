@@ -1,0 +1,28 @@
+.analysis-templates-page {
+  padding: 24px;
+
+  h1 {
+    margin-bottom: 16px;
+  }
+
+  .empty-state {
+    opacity: 0.7;
+  }
+
+  .templates-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}

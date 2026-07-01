@@ -4,6 +4,8 @@ export interface MenuInterface {
   icon: string;
   adminGuard?: boolean;
   authGuard?: boolean;
+  // Requires isLoggedIn && the user's permissions to include this value.
+  permission?: string;
   action?: () => void;
   hidden?: boolean;
   ref?: string;

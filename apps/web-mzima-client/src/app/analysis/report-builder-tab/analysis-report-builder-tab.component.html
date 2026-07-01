@@ -1,0 +1,91 @@
+<div class="report-builder-tab">
+  <div class="filters">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'analysis.select_survey' | translate }}</mat-label>
+      <mat-select [(ngModel)]="selectedFormId">
+        <mat-option [value]="null">{{ 'analysis.all_surveys' | translate }}</mat-option>
+        <mat-option [value]="form.id" *ngFor="let form of forms">{{ form.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'analysis.date_from' | translate }}</mat-label>
+      <input matInput type="date" [(ngModel)]="dateFrom" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'analysis.date_to' | translate }}</mat-label>
+      <input matInput type="date" [(ngModel)]="dateTo" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'analysis.group_by' | translate }}</mat-label>
+      <mat-select [(ngModel)]="groupBy">
+        <mat-option value="status">{{ 'analysis.status' | translate }}</mat-option>
+        <mat-option value="form">{{ 'analysis.survey' | translate }}</mat-option>
+        <mat-option value="tags">{{ 'analysis.categories' | translate }}</mat-option>
+        <mat-option value="county">{{ 'analysis.county' | translate }}</mat-option>
+        <mat-option value="district">{{ 'analysis.district' | translate }}</mat-option>
+        <mat-option value="attribute">{{ 'analysis.attribute' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" *ngIf="groupBy === 'attribute'">
+      <mat-label>{{ 'analysis.attribute_key' | translate }}</mat-label>
+      <input matInput [(ngModel)]="groupByAttributeKey" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'analysis.chart_type' | translate }}</mat-label>
+      <mat-select [(ngModel)]="chartType">
+        <mat-option value="bar">{{ 'analysis.chart_bar' | translate }}</mat-option>
+        <mat-option value="pie">{{ 'analysis.chart_pie' | translate }}</mat-option>
+        <mat-option value="line">{{ 'analysis.chart_line' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="actions">
+    <mat-form-field appearance="outline" *ngIf="templates.length">
+      <mat-label>{{ 'analysis.load_template' | translate }}</mat-label>
+      <mat-select (selectionChange)="applyTemplate($event.value)">
+        <mat-option [value]="template.id" *ngFor="let template of templates">
+          {{ template.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-flat-button color="primary" (click)="preview()">
+      {{ 'analysis.preview' | translate }}
+    </button>
+    <button mat-stroked-button [disabled]="!hasPreviewed" (click)="saveAsTemplate()">
+      {{ 'analysis.save_as_template' | translate }}
+    </button>
+  </div>
+
+  <div class="chart-cover" *ngIf="hasPreviewed">
+    <ng-container [ngSwitch]="chartType">
+      <ngx-charts-bar-vertical
+        *ngSwitchCase="'bar'"
+        [scheme]="colorScheme"
+        [results]="data"
+        [xAxis]="true"
+        [yAxis]="true"
+      ></ngx-charts-bar-vertical>
+      <ngx-charts-pie-chart
+        *ngSwitchCase="'pie'"
+        [scheme]="colorScheme"
+        [results]="data"
+        [labels]="true"
+      ></ngx-charts-pie-chart>
+      <ngx-charts-line-chart
+        *ngSwitchCase="'line'"
+        [scheme]="colorScheme"
+        [results]="chartSeries"
+        [xAxis]="true"
+        [yAxis]="true"
+        [autoScale]="true"
+      ></ngx-charts-line-chart>
+    </ng-container>
+  </div>
+</div>

@@ -76,4 +76,5 @@ export enum Icons {
   ellipses = 'ellipses',
   lock = 'lock',
   translate = 'translate',
+  chartBar = 'chart-bar',
 }

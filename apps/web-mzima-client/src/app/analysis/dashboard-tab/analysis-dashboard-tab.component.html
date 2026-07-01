@@ -1,0 +1,55 @@
+<div class="dashboard-tab">
+  <div class="filters">
+    <mat-form-field appearance="outline">
+      <mat-select
+        [(ngModel)]="selectedFormId"
+        (selectionChange)="onFormChange()"
+        [placeholder]="'analysis.select_survey' | translate"
+      >
+        <mat-option value="all">{{ 'analysis.all_surveys' | translate }}</mat-option>
+        <mat-option [value]="form.id" *ngFor="let form of forms">{{ form.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-select
+        [(ngModel)]="trendInterval"
+        (selectionChange)="onIntervalChange()"
+        [placeholder]="'analysis.trend_interval' | translate"
+      >
+        <mat-option value="day">{{ 'analysis.daily' | translate }}</mat-option>
+        <mat-option value="month">{{ 'analysis.monthly' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="stat-card">
+    <span class="stat-card__label">{{ 'analysis.total_reports' | translate }}</span>
+    <span class="stat-card__value">{{ totalReports }}</span>
+  </div>
+
+  <div class="charts">
+    <div class="chart-cover">
+      <h2>{{ 'analysis.reports_by_county' | translate }}</h2>
+      <ngx-charts-pie-chart
+        [scheme]="colorScheme"
+        [results]="countyData"
+        [labels]="true"
+        [doughnut]="false"
+      >
+      </ngx-charts-pie-chart>
+    </div>
+
+    <div class="chart-cover">
+      <h2>{{ 'analysis.reports_trend' | translate }}</h2>
+      <ngx-charts-line-chart
+        [scheme]="colorScheme"
+        [results]="trendData"
+        [xAxis]="true"
+        [yAxis]="true"
+        [autoScale]="true"
+      >
+      </ngx-charts-line-chart>
+    </div>
+  </div>
+</div>

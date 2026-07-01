@@ -77,6 +77,13 @@ export class MenuListLinksComponent extends BaseComponent implements OnInit {
       },
       // Liberia custom nav links (see ../../../../liberia/liberia.routes.ts)
       {
+        label: 'Analysis',
+        router: 'analysis',
+        icon: 'chart-bar',
+        ref: 'analysis',
+        permission: Permissions.AccessAnalysis,
+      },
+      {
         label: 'Get Alerts',
         router: 'get-alerts',
         icon: 'warning',
