@@ -40,6 +40,18 @@
       <input matInput formControlName="longitude" placeholder="e.g. -10.8" />
     </mat-form-field>
 
+    <div class="categories-field">
+      <mat-label>Categories</mat-label>
+      <div class="categories-list">
+        <mat-checkbox
+          *ngFor="let category of categories"
+          (change)="toggleCategory(category.id, $event.checked)"
+        >
+          {{ category.tag }}
+        </mat-checkbox>
+      </div>
+    </div>
+
     <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
       {{ submitting ? 'Subscribing...' : 'Subscribe to Alerts' }}
     </button>

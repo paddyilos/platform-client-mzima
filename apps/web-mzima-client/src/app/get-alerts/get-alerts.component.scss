@@ -31,3 +31,16 @@
   padding: 16px;
   border-radius: 4px;
 }
+
+.categories-field {
+  mat-label {
+    display: block;
+    margin-bottom: 8px;
+  }
+}
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
