@@ -42,6 +42,16 @@
       <mat-error>Message is required</mat-error>
     </mat-form-field>
 
+    <div class="captcha-row">
+      <span class="captcha-question">What is {{ captchaNum1 }} + {{ captchaNum2 }}?</span>
+      <mat-form-field appearance="outline">
+        <mat-label>Answer</mat-label>
+        <input matInput formControlName="captcha" type="number" />
+      </mat-form-field>
+      <span class="captcha-refresh" title="Get a new question" (click)="newCaptcha()">&#8635;</span>
+    </div>
+    <p *ngIf="captchaError" class="captcha-error">That's not quite right. Please try again.</p>
+
     <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || submitting">
       {{ submitting ? 'Sending...' : 'Send Message' }}
     </button>

@@ -23,6 +23,38 @@
   button {
     align-self: flex-start;
   }
+
+  // Scoped fix: labels/input text sit flush against the outline with no
+  // padding by default on this app's Material theme (same on stock pages
+  // like Settings > General) — give this form's fields breathing room.
+  ::ng-deep .mat-form-field-infix {
+    padding: 0.5em 0 0.75em 0.5em;
+  }
+}
+
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  .captcha-question {
+    white-space: nowrap;
+    color: #333;
+  }
+
+  .captcha-refresh {
+    cursor: pointer;
+    color: #555;
+  }
+}
+
+.captcha-error {
+  color: #b3261e;
+  margin: -8px 0 0;
 }
 
 .success-message {

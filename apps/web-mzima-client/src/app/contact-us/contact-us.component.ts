@@ -13,6 +13,11 @@ export class ContactUsComponent implements OnInit {
   submitting = false;
   submitted = false;
 
+  captchaNum1 = 0;
+  captchaNum2 = 0;
+  captchaAnswer = 0;
+  captchaError = false;
+
   constructor(
     private fb: FormBuilder,
     private contactUsService: ContactUsService,
@@ -26,13 +31,36 @@ export class ContactUsComponent implements OnInit {
       phone_number: [''],
       subject: ['', [Validators.required, Validators.maxLength(255)]],
       message: ['', [Validators.required, Validators.maxLength(5000)]],
+      captcha: ['', Validators.required],
     });
+    this.newCaptcha();
+  }
+
+  newCaptcha(): void {
+    this.captchaNum1 = Math.floor(Math.random() * 9) + 1;
+    this.captchaNum2 = Math.floor(Math.random() * 9) + 1;
+    this.captchaAnswer = this.captchaNum1 + this.captchaNum2;
+    this.captchaError = false;
+    this.form?.get('captcha')?.reset('');
   }
 
   submit(): void {
     if (this.form.invalid || this.submitting) return;
+
+    if (Number(this.form.value.captcha) !== this.captchaAnswer) {
+      this.captchaError = true;
+      return;
+    }
+
     this.submitting = true;
-    this.contactUsService.submit(this.form.value).subscribe({
+    const payload = {
+      name: this.form.value.name,
+      email: this.form.value.email,
+      phone_number: this.form.value.phone_number,
+      subject: this.form.value.subject,
+      message: this.form.value.message,
+    };
+    this.contactUsService.submit(payload).subscribe({
       next: () => {
         this.submitted = true;
         this.snackBar.open('Message sent successfully. We will get back to you shortly.', 'Close', {
@@ -44,6 +72,7 @@ export class ContactUsComponent implements OnInit {
           duration: 5000,
         });
         this.submitting = false;
+        this.newCaptcha();
       },
     });
   }
