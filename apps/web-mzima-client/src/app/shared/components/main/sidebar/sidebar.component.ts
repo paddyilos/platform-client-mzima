@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { BreakpointService, EventBusService, EventType, SessionService } from '@services';
 import { BaseComponent } from '../../../../base.component';
 
@@ -7,7 +7,7 @@ import { BaseComponent } from '../../../../base.component';
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.scss'],
 })
-export class SidebarComponent extends BaseComponent {
+export class SidebarComponent extends BaseComponent implements OnInit {
   public isInnerPage = false;
 
   constructor(
@@ -22,6 +22,10 @@ export class SidebarComponent extends BaseComponent {
         this.isInnerPage = Boolean(option.inner);
       },
     });
+  }
+
+  ngOnInit(): void {
+    this.getUserData();
   }
 
   loadData(): void {}

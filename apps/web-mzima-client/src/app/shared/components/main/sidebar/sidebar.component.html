@@ -5,7 +5,7 @@
     [isRound]="false"
     [hasIconOnly]="false"
     [hasText]="true"
-    *ngIf="checkAllowedAccessToSite()"
+    *ngIf="checkAllowedAccessToSite() && isLoggedIn"
   >
   </app-submit-post-button>
 

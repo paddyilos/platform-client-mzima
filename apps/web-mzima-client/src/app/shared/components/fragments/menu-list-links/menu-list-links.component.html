@@ -1,6 +1,8 @@
 <nav class="sidebar__menu" id="sidebar-menu">
   <ng-container *ngFor="let item of menu">
-    <ng-container *ngIf="!item.hidden && (!item.adminGuard || isHost)">
+    <ng-container
+      *ngIf="!item.hidden && (!item.adminGuard || isHost) && (!item.authGuard || isLoggedIn)"
+    >
       <a
         [id]="item.ref"
         class="sidebar-menu-button"

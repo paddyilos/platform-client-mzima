@@ -3,6 +3,7 @@ export interface MenuInterface {
   router?: string;
   icon: string;
   adminGuard?: boolean;
+  authGuard?: boolean;
   action?: () => void;
   hidden?: boolean;
   ref?: string;

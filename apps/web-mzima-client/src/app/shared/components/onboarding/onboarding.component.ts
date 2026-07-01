@@ -153,6 +153,7 @@ export class OnboardingComponent implements AfterViewInit {
         content: this.translate.instant('onboarding.activity.content'),
         selector: '[data-onboard-id="sidebar-btn-activity"]',
         position: 'right',
+        hidden: !this.isLoggedIn,
       },
       {
         title: this.translate.instant('onboarding.collections.title'),

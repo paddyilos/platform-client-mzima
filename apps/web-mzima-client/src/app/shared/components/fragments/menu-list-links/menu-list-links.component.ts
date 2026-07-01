@@ -66,6 +66,7 @@ export class MenuListLinksComponent extends BaseComponent implements OnInit {
         router: 'activity',
         icon: 'activity',
         ref: 'activity',
+        authGuard: true,
       },
       {
         label: 'nav.settings',
