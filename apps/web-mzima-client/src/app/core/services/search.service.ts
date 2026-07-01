@@ -12,7 +12,8 @@ export class SearchService {
     return this.httpClient.get('https://nominatim.openstreetmap.org/search', {
       params: {
         q: query,
-        format: 'json',
+        format: 'jsonv2',
+        countrycodes: 'lr',
       },
     });
   }

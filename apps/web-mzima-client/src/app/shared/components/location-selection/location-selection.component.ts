@@ -17,6 +17,7 @@ export interface SelectedLocation {
 }
 
 export interface SearchResponse {
+  addresstype: string;
   boundingbox: string[];
   class: string;
   display_name: string;
@@ -86,6 +87,24 @@ export class LocationSelectionComponent implements ControlValueAccessor {
   public citiesOptions: BehaviorSubject<SearchResponse[]>;
   public searchQuery?: SearchResponse;
 
+  // Liberia's populated places aren't consistently tagged "city"/"county" in OSM
+  // (e.g. Ganta/Buchanan/Zwedru come back as "town", counties come back as "state"),
+  // so this allowlist is deliberately inclusive rather than a literal city/county match.
+  private readonly allowedAddressTypes = new Set([
+    'city',
+    'town',
+    'village',
+    'hamlet',
+    'municipality',
+    'suburb',
+    'county',
+    'state',
+    'road',
+    'house',
+    'building',
+    'residential',
+  ]);
+
   constructor(private searchService: SearchService, private breakpointService: BreakpointService) {
     this.isDesktop$ = this.breakpointService.isDesktop$.pipe(untilDestroyed(this));
     this.citiesOptions = new BehaviorSubject<any[]>([]);
@@ -94,11 +113,15 @@ export class LocationSelectionComponent implements ControlValueAccessor {
       next: (query: string) => {
         this.searchService.get(query).subscribe({
           next: (response: SearchResponse[]) => {
-            this.citiesOptions.next(response);
+            this.citiesOptions.next(this.filterToLiberiaLocations(response));
           },
         });
       },
     });
+  }
+
+  private filterToLiberiaLocations(results: SearchResponse[]): SearchResponse[] {
+    return results.filter((result) => this.allowedAddressTypes.has(result.addresstype));
   }
 
   onChange = (location: SelectedLocation) => {
@@ -113,9 +136,10 @@ export class LocationSelectionComponent implements ControlValueAccessor {
 
       this.searchService.get(`${value?.location?.lat}, ${value?.location?.lng}`).subscribe({
         next: (response: SearchResponse[]) => {
-          if (response.length) {
-            this.citiesOptions.next(response);
-            this.searchQuery = response[0];
+          const filtered = this.filterToLiberiaLocations(response);
+          if (filtered.length) {
+            this.citiesOptions.next(filtered);
+            this.searchQuery = filtered[0];
           }
         },
       });
