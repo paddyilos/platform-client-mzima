@@ -10,7 +10,13 @@ export interface AlertPayload {
   email: string;
   latitude: string;
   longitude: string;
+  location?: string;
   categories?: number[];
+}
+
+export interface GeoLookupResult {
+  county: string;
+  district: string;
 }
 
 @Injectable({
@@ -34,5 +40,9 @@ export class AlertsService extends ResourceService<any> {
 
   subscribe(payload: AlertPayload): Observable<any> {
     return super.post(payload);
+  }
+
+  lookupLocation(lat: number, lng: number): Observable<GeoLookupResult> {
+    return super.get('lookup-location', { lat, lng });
   }
 }

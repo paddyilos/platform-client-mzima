@@ -1,33 +1,35 @@
 <div class="about-us-page">
-  <h1>About Us</h1>
+  <div class="about-us-page__inner">
+    <h1>About Us</h1>
 
-  <div *ngIf="loading" class="loading">Loading…</div>
+    <div *ngIf="loading" class="loading">Loading…</div>
 
-  <ng-container *ngIf="!loading">
-    <img *ngIf="content.image" [src]="content.image" alt="About Us" class="header-image" />
+    <ng-container *ngIf="!loading">
+      <img *ngIf="content.image" [src]="content.image" alt="About Us" class="header-image" />
 
-    <div *ngIf="content.logos?.length" class="logos-row">
-      <img *ngFor="let logo of content.logos" [src]="logo" alt="Partner logo" />
-    </div>
-
-    <section *ngIf="content.who_we_are as section" class="content-section">
-      <h2>{{ section.title }}</h2>
-      <div class="description" [innerHTML]="section.description"></div>
-    </section>
-
-    <section *ngIf="content.how_we_work as section" class="content-section">
-      <h2>{{ section.title }}</h2>
-      <div class="description" [innerHTML]="section.description"></div>
-    </section>
-
-    <section *ngIf="content.donors_info as section" class="content-section">
-      <h2>{{ section.title }}</h2>
-      <div class="description" [innerHTML]="section.description"></div>
-      <div *ngIf="content.donor_logos?.length" class="logos-row">
-        <img *ngFor="let logo of content.donor_logos" [src]="logo" alt="Donor logo" />
+      <div *ngIf="content.logos?.length" class="logos-row">
+        <img *ngFor="let logo of content.logos" [src]="logo" alt="Partner logo" />
       </div>
-    </section>
 
-    <div *ngIf="!hasContent" class="empty">Content for this page has not been added yet.</div>
-  </ng-container>
+      <section *ngIf="content.who_we_are as section" class="content-section">
+        <h2>{{ section.title }}</h2>
+        <div class="description" [innerHTML]="section.description"></div>
+      </section>
+
+      <section *ngIf="content.how_we_work as section" class="content-section">
+        <h2>{{ section.title }}</h2>
+        <div class="description" [innerHTML]="section.description"></div>
+      </section>
+
+      <section *ngIf="content.donors_info as section" class="content-section">
+        <h2>{{ section.title }}</h2>
+        <div class="description" [innerHTML]="section.description"></div>
+        <div *ngIf="content.donor_logos?.length" class="logos-row">
+          <img *ngFor="let logo of content.donor_logos" [src]="logo" alt="Donor logo" />
+        </div>
+      </section>
+
+      <div *ngIf="!hasContent" class="empty">Content for this page has not been added yet.</div>
+    </ng-container>
+  </div>
 </div>

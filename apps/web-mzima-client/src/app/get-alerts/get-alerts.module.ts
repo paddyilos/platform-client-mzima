@@ -6,10 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TranslateModule } from '@ngx-translate/core';
 import { GetAlertsRoutingModule } from './get-alerts-routing.module';
 import { GetAlertsComponent } from './get-alerts.component';
+import { LocationSelectModule } from '../post/location-select/location-select.module';
+import { FilterControlModule } from '../shared/components/filter-control/filter-control.module';
 
 @NgModule({
   declarations: [GetAlertsComponent],
@@ -21,9 +22,10 @@ import { GetAlertsComponent } from './get-alerts.component';
     MatSelectModule,
     MatSliderModule,
     MatSnackBarModule,
-    MatCheckboxModule,
     TranslateModule,
     GetAlertsRoutingModule,
+    LocationSelectModule,
+    FilterControlModule,
   ],
 })
 export class GetAlertsModule {}

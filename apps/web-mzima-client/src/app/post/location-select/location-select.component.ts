@@ -25,7 +25,7 @@ import {
 } from 'leaflet';
 import 'leaflet.markercluster';
 import { pointIcon } from '../../core/helpers/map';
-import Geocoder from 'leaflet-control-geocoder';
+import Geocoder, { geocoders } from 'leaflet-control-geocoder';
 import { fromEvent, filter, debounceTime, distinctUntilChanged, tap } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
@@ -43,6 +43,7 @@ export class LocationSelectComponent implements OnInit, AfterViewInit {
   @Input() public color = 'var(--color-neutral-100)';
   @Input() public type = 'default';
   @Input() public isEditPost: boolean = false;
+  @Input() public geocoderCountryCodes?: string;
   @Output() locationChange = new EventEmitter();
   public emptyFieldLat = false;
   public emptyFieldLng = false;
@@ -86,6 +87,12 @@ export class LocationSelectComponent implements OnInit, AfterViewInit {
       scrollWheelZoom: true,
       zoomControl: false,
       worldCopyJump: true,
+      // Leaflet's Tap handler (enabled by default whenever L.Browser.touch
+      // is true) simulates click events from touch gestures and suppresses
+      // a "ghost click" shortly after init to avoid double-firing. In
+      // environments where Browser.touch is true but interaction is really
+      // mouse/pointer-based, this eats the very first click on the map.
+      tap: false,
       layers: [tileLayer(currentLayer.url, currentLayer.layerOptions)],
       center: [
         this.location?.lat || this.mapConfig.default_view!.lat,
@@ -129,6 +136,15 @@ export class LocationSelectComponent implements OnInit, AfterViewInit {
       collapsed: false,
       placeholder: this.translate.instant('post.location.search_address'),
       errorMessage: this.translate.instant('post.location.nothing_found'),
+      ...(this.geocoderCountryCodes && {
+        // A country-restricted search frequently returns a single match, and
+        // showUniqueResult (default true) would auto-select it, skipping the
+        // suggestion dropdown entirely.
+        showUniqueResult: false,
+        geocoder: geocoders.nominatim({
+          geocodingQueryParams: { countrycodes: this.geocoderCountryCodes },
+        }),
+      }),
     });
 
     this.map = map;

@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AlertsService, CategoriesService, CategoryInterface, apiHelpers } from '@mzima-client/sdk';
+import { FilterType } from '../shared/components/filter-control/filter-control.component';
 
 @Component({
   selector: 'app-get-alerts',
@@ -14,21 +15,25 @@ export class GetAlertsComponent implements OnInit {
   submitted = false;
   radiusOptions = [1, 5, 10, 20, 50, 100];
   categories: CategoryInterface[] = [];
-  selectedCategoryIds: number[] = [];
+  filterType = FilterType;
+  location: any = { lat: 6.3, lng: -10.8 };
+  resolvedLocationName = '';
 
   constructor(
     private fb: FormBuilder,
     private alertsService: AlertsService,
     private categoriesService: CategoriesService,
     private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       radius: [10, Validators.required],
-      latitude: ['6.3', Validators.required],
-      longitude: ['-10.8', Validators.required],
+      latitude: [String(this.location.lat), Validators.required],
+      longitude: [String(this.location.lng), Validators.required],
+      categories: [[]],
     });
 
     this.categoriesService
@@ -40,18 +45,25 @@ export class GetAlertsComponent implements OnInit {
       });
   }
 
-  toggleCategory(id: number, checked: boolean): void {
-    if (checked) {
-      this.selectedCategoryIds = [...this.selectedCategoryIds, id];
-    } else {
-      this.selectedCategoryIds = this.selectedCategoryIds.filter((c) => c !== id);
-    }
+  onLocationChange({ location }: { location: { lat: number; lng: number } }): void {
+    this.location = location;
+    this.form.patchValue({ latitude: String(location.lat), longitude: String(location.lng) });
+    this.alertsService.lookupLocation(location.lat, location.lng).subscribe({
+      next: ({ county, district }) => {
+        this.resolvedLocationName = [district, county].filter(Boolean).join(', ');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.resolvedLocationName = '';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   submit(): void {
     if (this.form.invalid || this.submitting) return;
     this.submitting = true;
-    const payload = { ...this.form.value, categories: this.selectedCategoryIds };
+    const payload = { ...this.form.value, location: this.resolvedLocationName };
     this.alertsService.subscribe(payload).subscribe({
       next: () => {
         this.submitted = true;

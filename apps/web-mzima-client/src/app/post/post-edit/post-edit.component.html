@@ -505,6 +505,9 @@
                 [type]="post?.source?.toLowerCase() || 'default'"
                 (locationChange)="changeLocation($event, field.key)"
               ></app-location-select>
+              <p class="resolved-location" *ngIf="resolvedLocationNames[field.key]">
+                Detected location: {{ resolvedLocationNames[field.key] }}
+              </p>
             </ng-container>
 
             <ng-container *ngIf="field.input === 'relation'">

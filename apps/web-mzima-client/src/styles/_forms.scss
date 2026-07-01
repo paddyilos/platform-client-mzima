@@ -501,6 +501,21 @@
     padding-bottom: 0;
   }
 
+  // The label is absolutely positioned against .mat-form-field-infix's padding
+  // box, so its own padding can't move it — .mat-form-field-flex's padding is
+  // zeroed above (for the input's custom pill styling), which otherwise leaves
+  // the label flush against the outline. Reposition it directly to match the
+  // 21px inset .mat-input-element already uses for typed text.
+  .mat-form-field-label-wrapper {
+    inset-inline-start: 21px;
+    width: calc(100% - 21px);
+
+    @include breakpoint-max($tablet) {
+      inset-inline-start: 23px;
+      width: calc(100% - 23px);
+    }
+  }
+
   .mat-form-field-outline-start,
   .mat-form-field-outline-gap {
     display: none;

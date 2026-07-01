@@ -1,14 +1,31 @@
-.contact-us-page {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 0 24px;
+@import 'helpers';
 
-  h1 {
-    margin-bottom: 8px;
+.contact-us-page {
+  // .mat-drawer-content (the shell's main content area) is overflow:hidden
+  // on desktop — see styles.scss — so pages taller than the viewport need
+  // their own scroll region. This lives on the full-width outer element
+  // (rather than on &__inner) so the scrollable hit area isn't limited to
+  // the centered content's max-width.
+  @include breakpoint-min($tablet) {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
-  p {
-    margin-bottom: 24px;
-    color: #555;
+
+  &__inner {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 24px;
+
+    h1 {
+      margin-bottom: 8px;
+    }
+    p {
+      margin-bottom: 24px;
+      color: #555;
+    }
   }
 }
 
@@ -22,13 +39,6 @@
   }
   button {
     align-self: flex-start;
-  }
-
-  // Scoped fix: labels/input text sit flush against the outline with no
-  // padding by default on this app's Material theme (same on stock pages
-  // like Settings > General) — give this form's fields breathing room.
-  ::ng-deep .mat-form-field-infix {
-    padding: 0.5em 0 0.75em 0.5em;
   }
 }
 

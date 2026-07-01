@@ -42,6 +42,7 @@ import {
   SurveyItem,
   MediaFile,
   MediaFileStatus,
+  AlertsService,
 } from '@mzima-client/sdk';
 import { BaseComponent } from '../../base.component';
 import { preparingVideoUrl } from '../../core/helpers/validators';
@@ -94,6 +95,7 @@ export class PostEditComponent extends BaseComponent implements OnInit, OnChange
   public formValidator = new formValidators.FormValidator();
   // public locationRequired = false;
   public emptyLocation = false;
+  public resolvedLocationNames: Record<string, string> = {};
   public submitted = false;
   public filters;
   maxImageSize: any;
@@ -118,6 +120,7 @@ export class PostEditComponent extends BaseComponent implements OnInit, OnChange
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
+    private alertsService: AlertsService,
   ) {
     super(sessionService, breakpointService);
     this.checkDesktop();
@@ -352,6 +355,17 @@ export class PostEditComponent extends BaseComponent implements OnInit, OnChange
 
     this.emptyLocation = error;
     this.cdr.detectChanges();
+
+    this.alertsService.lookupLocation(lat, lng).subscribe({
+      next: ({ county, district }) => {
+        this.resolvedLocationNames[formKey] = [district, county].filter(Boolean).join(', ');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.resolvedLocationNames[formKey] = '';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   private handleTags(key: string, value: any) {

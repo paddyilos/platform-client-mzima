@@ -26,7 +26,7 @@ import { NgxPaginationModule } from 'ngx-pagination';
 import { PostRoutingModule } from './post-routing.module';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
 import { PostEditComponent } from './post-edit/post-edit.component';
-import { LocationSelectComponent } from './location-select/location-select.component';
+import { LocationSelectModule } from './location-select/location-select.module';
 import { PostPreviewComponent } from './post-preview/post-preview.component';
 import { PostDetailsComponent } from './post-details/post-details.component';
 import { PostMetadataComponent } from './post-metadata/post-metadata.component';
@@ -45,7 +45,6 @@ import { PostTranslatedComponent } from './post-translated/post-translated.compo
 @NgModule({
   declarations: [
     PostEditComponent,
-    LocationSelectComponent,
     PostPreviewComponent,
     PostDetailsComponent,
     PostMetadataComponent,
@@ -63,6 +62,7 @@ import { PostTranslatedComponent } from './post-translated/post-translated.compo
     CommonModule,
     PostRoutingModule,
     LeafletModule,
+    LocationSelectModule,
     TranslateModule,
     MatButtonModule,
     MatIconModule,
