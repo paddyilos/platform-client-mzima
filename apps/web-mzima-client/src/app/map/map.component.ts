@@ -8,6 +8,7 @@ import { MainViewComponent } from '@shared';
 import {
   Content,
   control,
+  Control,
   FeatureGroup,
   FitBoundsOptions,
   geoJSON,
@@ -19,6 +20,7 @@ import {
   tileLayer,
 } from 'leaflet';
 import 'leaflet.markercluster';
+import * as shp from 'shpjs';
 import { debounceTime, Observable } from 'rxjs';
 import { PostPreviewComponent } from '../post/post-preview/post-preview.component';
 import { PostDetailsModalComponent } from './post-details-modal/post-details-modal.component';
@@ -29,6 +31,23 @@ import {
   GeoJsonPostsResponse,
 } from '@mzima-client/sdk';
 import { SessionService, EventBusService, EventType, BreakpointService } from '@services';
+
+// Liberia PBO custom: Clan/District boundary overlay toggle (see LIBERIA_CUSTOM.md)
+const LIBERIA_BOUNDARIES_URI = 'assets/shapefiles/liberia/administrative-levels.zip';
+const BOUNDARY_LAYERS_CONFIG = [
+  {
+    fileName: 'Clan2',
+    altName: 'Clan',
+    selected: false,
+    options: { style: { color: 'grey', opacity: 1, weight: 1 } },
+  },
+  {
+    fileName: 'County2',
+    altName: 'District',
+    selected: true,
+    options: { style: { color: '#087407', opacity: 1, weight: 1 } },
+  },
+];
 
 @UntilDestroy()
 @Component({
@@ -54,6 +73,7 @@ export class MapComponent extends MainViewComponent implements OnInit {
   public progress = 0;
   public isFiltersVisible: boolean;
   public isMainFiltersOpen: boolean;
+  private boundaryLayerControl?: Control.Layers;
 
   constructor(
     protected override router: Router,
@@ -179,6 +199,27 @@ export class MapComponent extends MainViewComponent implements OnInit {
     //---------------------
 
     control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    this.boundaryLayerControl = control
+      .layers(undefined, undefined, { position: 'bottomleft', hideSingleBase: false })
+      .addTo(map);
+    this.addBoundaryLayers(map);
+  }
+
+  private addBoundaryLayers(map: Map): void {
+    shp(LIBERIA_BOUNDARIES_URI).then((data: any) => {
+      const collections = Array.isArray(data) ? data : [data];
+      collections.forEach((collection: any) => {
+        const config = BOUNDARY_LAYERS_CONFIG.find((c) => c.fileName === collection.fileName);
+        if (!config) return;
+
+        const layer = geoJSON(collection, config.options);
+        this.boundaryLayerControl?.addOverlay(layer, config.altName);
+        if (config.selected) {
+          layer.addTo(map);
+        }
+      });
+    });
   }
 
   getPostsGeoJson(pageNumber: number = 1, filter?: any) {

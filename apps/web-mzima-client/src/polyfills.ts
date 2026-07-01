@@ -42,6 +42,12 @@
  *
  */
 
+// Liberia PBO custom: shpjs's dependency chain (used by the map's Clan/District
+// boundary layers) assumes Node.js `global`/`Buffer`, which webpack 5 no longer polyfills.
+import { Buffer } from 'buffer';
+(window as any).global = window;
+(window as any).Buffer = Buffer;
+
 /***************************************************************************************************
  * Zone JS is required by default for Angular itself.
  */
