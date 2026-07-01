@@ -15,11 +15,6 @@
   <div class="toolbar__controls">
     <app-search-form class="search-form" *ngIf="showSearchForm"></app-search-form>
     <app-share-and-donate *ngIf="isDesktop"></app-share-and-donate>
-    <app-language
-      class="toolbar__language"
-      [languages]="languages"
-      [selectedLanguage]="selectedLanguage"
-    ></app-language>
   </div>
   <app-account-and-logout class="account"></app-account-and-logout>
   <mzima-client-button
