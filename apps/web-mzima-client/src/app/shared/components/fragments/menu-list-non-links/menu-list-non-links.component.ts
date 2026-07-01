@@ -69,21 +69,21 @@ export class MenuListNonLinksComponent extends BaseComponent implements OnInit {
       {
         label: 'nav.collections',
         icon: 'collections',
-        visible: !this.siteConfig.private || this.isLoggedIn,
+        visible: this.isLoggedIn,
         action: () => {
           this.openCollections();
           hideMobileMenuOnSmallerDevices();
         },
         ref: 'collection',
-        forDesktop: true, //adding/using forDesktop since menuItem.visible does not work on resize from mobile to desktop
+        forDesktop: this.isLoggedIn, //adding/using forDesktop since menuItem.visible does not work on resize from mobile to desktop
       },
       {
         label: 'nav.help_support',
         icon: 'info',
-        visible: true,
+        visible: this.isLoggedIn,
         action: () => this.openSupportModal(),
         ref: 'support',
-        forDesktop: true,
+        forDesktop: this.isLoggedIn,
       },
       {
         label: 'nav.my_account',
