@@ -1,7 +1,13 @@
 <div class="analysis-page">
   <h1>{{ 'analysis.title' | translate }}</h1>
 
-  <mat-tab-group dynamicHeight disableRipple disablePagination animationDuration="0ms">
+  <mat-tab-group
+    [selectedIndex]="selectedTabIndex"
+    dynamicHeight
+    disableRipple
+    disablePagination
+    animationDuration="0ms"
+  >
     <mat-tab
       [label]="'analysis.tab_dashboard' | translate"
       [attr.data-qa]="'tab-analysis-dashboard'"

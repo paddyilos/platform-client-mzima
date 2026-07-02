@@ -8,13 +8,10 @@ import * as shp from 'shpjs';
 const BOUNDARY_SHAPEFILE_NAME = 'County2';
 
 const LIBERIA_BOUNDARIES_URI = 'assets/shapefiles/liberia/administrative-levels.zip';
-// Same sequential palette used by the report builder's ngx-charts, low to high count.
+// Same sequential palette used elsewhere in the Analysis feature, low to high count.
 const CHOROPLETH_SCALE = ['#FFEBBB', '#F9CE7B', '#F1A661', '#E67E4D', '#D6553A'];
 
-interface ReportChartInput {
-  group_by: string;
-  data: { name: string; value: number }[];
-}
+type Dimension = 'county' | 'district';
 
 /**
  * Small, standalone Leaflet choropleth for the Analysis Report Builder's
@@ -22,9 +19,12 @@ interface ReportChartInput {
  * view (post-filters.component.ts's onShowMap()). Reuses the same Liberia
  * shapefile asset and shpjs parsing approach as the main map.component.ts's
  * addBoundaryLayers(), but is purely presentational (driven by @Input(),
- * no dependency on MainViewComponent/global filter state) since it only
- * needs to color counties/districts by report count, not render posts.
- * See ushahidi-client/LIBERIA_CUSTOM.md.
+ * no dependency on MainViewComponent/global filter state) — takes
+ * pre-aggregated county/district counts (computed client-side from the
+ * same pivot data fetch, see computeLocationBreakdown() in the report
+ * builder) rather than any pivot-internal state, so it works regardless of
+ * what dimensions the user has currently dragged into a pivot. See
+ * ushahidi-client/LIBERIA_CUSTOM.md.
  */
 @Component({
   selector: 'app-analysis-report-map',
@@ -32,7 +32,10 @@ interface ReportChartInput {
   styleUrls: ['./analysis-report-map.component.scss'],
 })
 export class AnalysisReportMapComponent implements OnChanges {
-  @Input() charts: ReportChartInput[] = [];
+  @Input() countyData: { name: string; value: number }[] = [];
+  @Input() districtData: { name: string; value: number }[] = [];
+
+  public activeDimension: Dimension = 'county';
 
   public leafletOptions: MapOptions = {
     minZoom: 1,
@@ -58,26 +61,24 @@ export class AnalysisReportMapComponent implements OnChanges {
     this.renderChoropleth();
   }
 
-  private get activeChart(): ReportChartInput | undefined {
-    return this.charts.find(
-      (chart) => chart.group_by === 'county' || chart.group_by === 'district',
-    );
+  public setDimension(dimension: Dimension): void {
+    this.activeDimension = dimension;
+    this.renderChoropleth();
   }
 
   private renderChoropleth(): void {
-    const chart = this.activeChart;
-    if (!this.map || !chart) {
+    if (!this.map) {
       return;
     }
-
-    const nameProperty = chart.group_by === 'county' ? 'FIRST_CCNA' : 'DNAME';
+    const data = this.activeDimension === 'county' ? this.countyData : this.districtData;
+    const nameProperty = this.activeDimension === 'county' ? 'FIRST_CCNA' : 'DNAME';
     const counts = new Map<string, number>(
-      chart.data.map((row): [string, number] => [row.name.trim().toLowerCase(), row.value]),
+      data.map((row): [string, number] => [row.name.trim().toLowerCase(), row.value]),
     );
-    const maxCount = Math.max(1, ...chart.data.map((row) => row.value));
+    const maxCount = Math.max(1, ...data.map((row) => row.value));
 
-    shp(LIBERIA_BOUNDARIES_URI).then((data: any) => {
-      const collections = Array.isArray(data) ? data : [data];
+    shp(LIBERIA_BOUNDARIES_URI).then((shapeData: any) => {
+      const collections = Array.isArray(shapeData) ? shapeData : [shapeData];
       const collection = collections.find((c: any) => c.fileName === BOUNDARY_SHAPEFILE_NAME);
       if (!collection) {
         return;

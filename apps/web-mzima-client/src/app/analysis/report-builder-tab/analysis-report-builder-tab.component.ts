@@ -1,64 +1,36 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import {
-  AnalysisChartConfig,
-  AnalysisChartType,
-  AnalysisGroupBy,
+  AnalysisPivotDataService,
   AnalysisTemplate,
   AnalysisTemplatesService,
   apiHelpers,
   CategoriesService,
   CategoryInterface,
-  FormAttributeInterface,
-  PostsService,
   SurveysService,
 } from '@mzima-client/sdk';
 import { TranslateService } from '@ngx-translate/core';
-import { ScaleType } from '@swimlane/ngx-charts';
-import { Color } from '@swimlane/ngx-charts/lib/utils/color-sets';
-import dayjs from 'dayjs';
-import { AnalysisPdfExportService } from '../analysis-pdf-export.service';
 import { SaveTemplateDialogComponent } from '../save-template-dialog/save-template-dialog.component';
 
-/** One chart panel of a (possibly multi-chart) report, plus its rendered data. */
-interface ReportChart extends AnalysisChartConfig {
-  data: { name: string; value: number }[];
-}
-
-const DEFAULT_CHART: () => ReportChart = () => ({
-  group_by: 'status',
-  group_by_attribute_key: undefined,
-  chart_type: 'bar',
-  data: [],
-});
-
-/**
- * Attribute types/inputs that make sense as a group-by dimension. Excludes
- * point/geometry/media/description/title (no single groupable "value"), and
- * plain free-text fields (input=text with type=varchar) — mirrors the old
- * UNICC fork's Flexmonster pivotability rule
- * (libs/core/domain/filters/filters.helper.ts:GetAllReportColumns). `tags`
- * type is also excluded: those already have a dedicated `tags` group-by
- * option covering the post's overall categories via the same posts_tags
- * join, and the backend's attribute group-by (Phase 0) doesn't support it.
- */
-function isPivotableField(field: FormAttributeInterface): boolean {
-  const excludedTypes = ['point', 'geometry', 'description', 'media', 'title', 'tags'];
-  if (excludedTypes.includes(field.type)) {
-    return false;
-  }
-  if (field.input === 'text' && field.type === 'varchar') {
-    return false;
-  }
-  return true;
+/** One `<app-wbr-pivot>` panel. `id` is a stable key independent of array
+ * position, since WebDataRocks instances are tracked in a Map keyed by it
+ * (see pivotInstances below) — array position shifts on add/remove, but a
+ * mounted pivot's identity must not. */
+interface Pivot {
+  id: number;
+  initialReport: any;
 }
 
 /**
- * "Report Builder" tab of the Liberia PBO Analysis page — an ad-hoc
- * filter/chart builder, replacing the old UNICC fork's Flexmonster-based
- * post-filters.component.ts. Renders with ngx-charts instead of a
- * commercial pivot widget. See ushahidi-client/LIBERIA_CUSTOM.md.
+ * "Report Builder" tab of the Liberia PBO Analysis page — a real pivot
+ * table (WebDataRocks, free — not the commercial Flexmonster the old
+ * platform used), replacing the old UNICC fork's Flexmonster-based
+ * post-filters.component.ts, and this app's own prior chart-array
+ * approximation. See ushahidi-client/LIBERIA_CUSTOM.md for why a
+ * dedicated lean backend endpoint feeds it (client-side pivoting needs raw
+ * per-post attribute values, and WebDataRocks' free tier hard-caps
+ * payloads at 1MB) and for the license terms (branding cannot be hidden).
  */
 @Component({
   selector: 'app-analysis-report-builder-tab',
@@ -66,12 +38,9 @@ function isPivotableField(field: FormAttributeInterface): boolean {
   styleUrls: ['./analysis-report-builder-tab.component.scss'],
 })
 export class AnalysisReportBuilderTabComponent implements OnInit {
-  @ViewChild('reportContainer') reportContainer?: ElementRef<HTMLElement>;
-
   public forms: any[] = [];
   public templates: AnalysisTemplate[] = [];
   public categories: CategoryInterface[] = [];
-  public surveyFields: FormAttributeInterface[] = [];
 
   public selectedFormId: number | null = null;
   public dateFrom: string | null = null;
@@ -79,28 +48,34 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
   public statusFilter: string[] = [];
   public tagsFilter: number[] = [];
 
-  public charts: ReportChart[] = [DEFAULT_CHART()];
-  public hasPreviewed = false;
-  public showMap = false;
+  public pivots: Pivot[] = [];
+  public hasLoadedData = false;
+  public isLoading = false;
+  public isTruncated = false;
+  public totalCount = 0;
+  public loadedCount = 0;
   public appliedTemplateName: string | null = null;
 
-  public colorScheme: Color = {
-    name: 'Custom color',
-    selectable: true,
-    group: ScaleType.Ordinal,
-    domain: ['#FFEBBB', '#F9CE7B', '#F1A661', '#E67E4D', '#D6553A'],
-  };
+  public showMap = false;
+  public countyData: { name: string; value: number }[] = [];
+  public districtData: { name: string; value: number }[] = [];
+
+  // Keyed by Pivot.id, not array index — see the Pivot interface comment.
+  private pivotInstances = new Map<number, any>();
+  private lastFetchedRows: Record<string, any>[] = [];
+  private nextPivotId = 1;
 
   constructor(
-    private postsService: PostsService,
+    private pivotDataService: AnalysisPivotDataService,
     private surveysService: SurveysService,
     private categoriesService: CategoriesService,
     private analysisTemplatesService: AnalysisTemplatesService,
-    private pdfExportService: AnalysisPdfExportService,
     private route: ActivatedRoute,
     private dialog: MatDialog,
     private translate: TranslateService,
-  ) {}
+  ) {
+    this.pivots = [this.newPivot()];
+  }
 
   ngOnInit(): void {
     this.surveysService.get().subscribe({
@@ -123,19 +98,11 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
     }
   }
 
-  public onFormChange(): void {
-    this.surveyFields = [];
-    if (!this.selectedFormId) {
-      return;
-    }
-    this.surveysService.getSurveyById(this.selectedFormId).subscribe({
-      next: (response: any) => {
-        const tasks = response?.result?.tasks ?? [];
-        this.surveyFields = tasks
-          .flatMap((task: any) => task.fields ?? [])
-          .filter(isPivotableField);
-      },
-    });
+  private newPivot(initialReport?: any): Pivot {
+    return {
+      id: this.nextPivotId++,
+      initialReport: initialReport ?? { dataSource: { data: [] }, slice: {} },
+    };
   }
 
   private loadTemplates(): void {
@@ -146,93 +113,87 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
     });
   }
 
-  public addChart(): void {
-    this.charts.push(DEFAULT_CHART());
+  public addPivot(): void {
+    // Give the new pivot the already-loaded data immediately, if any, so
+    // it doesn't render empty until the next "Load data" click.
+    this.pivots.push(this.newPivot({ dataSource: { data: this.lastFetchedRows } }));
   }
 
-  public removeChart(index: number): void {
-    this.charts.splice(index, 1);
+  public removePivot(index: number): void {
+    const [removed] = this.pivots.splice(index, 1);
+    this.pivotInstances.delete(removed.id);
   }
 
-  private buildFilterParams(): Record<string, any> {
-    const params: Record<string, any> = {};
-    if (this.selectedFormId) {
-      params['form'] = [this.selectedFormId];
-    }
-    if (this.dateFrom) {
-      params['created_after'] = this.dateFrom;
-    }
-    if (this.dateTo) {
-      params['created_before'] = this.dateTo;
-    }
-    if (this.statusFilter.length) {
-      params['status[]'] = this.statusFilter;
-    }
-    if (this.tagsFilter.length) {
-      params['tags[]'] = this.tagsFilter;
-    }
-    return params;
+  /** Bound to `<app-wbr-pivot (ready)>` — fires once the underlying
+   * WebDataRocks.Pivot instance exists and its imperative API (getReport/
+   * setReport) becomes callable. */
+  public onPivotReady(instance: any, pivotId: number): void {
+    this.pivotInstances.set(pivotId, instance);
   }
 
-  public preview(): void {
-    this.charts.forEach((chart) => this.previewChart(chart));
-    this.hasPreviewed = true;
-  }
-
-  private previewChart(chart: ReportChart): void {
-    if (chart.group_by === 'county' || chart.group_by === 'district') {
-      this.previewChartByLocation(chart);
+  public loadData(): void {
+    if (!this.selectedFormId) {
       return;
     }
+    this.isLoading = true;
+    this.pivotDataService
+      .list({
+        form_id: this.selectedFormId,
+        created_after: this.dateFrom || undefined,
+        created_before: this.dateTo || undefined,
+        status: this.statusFilter,
+        tags: this.tagsFilter,
+      })
+      .subscribe({
+        next: (response) => {
+          this.totalCount = response.total;
+          this.loadedCount = response.count;
+          this.isTruncated = response.truncated;
+          this.lastFetchedRows = response.results;
+          this.computeLocationBreakdown(response.results);
 
-    const params: Record<string, any> = {
-      ...this.buildFilterParams(),
-      group_by: chart.group_by,
+          // Recreate every pivot with the fetched rows baked into its
+          // `report` from the start, preserving each one's current slice
+          // (read live via getReport() where the instance is already
+          // mounted, e.g. reloading after a filter change) — WebDataRocks'
+          // updateData() does not reliably keep a pre-configured slice when
+          // transitioning from empty to populated data (confirmed via
+          // manual testing: a template-applied slice was silently replaced
+          // by WebDataRocks' own auto-generated default once real data
+          // arrived), so data must be present at construction, not patched
+          // in afterward.
+          this.pivots = this.pivots.map((pivot) => {
+            let slice = pivot.initialReport?.slice;
+            try {
+              slice = this.pivotInstances.get(pivot.id)?.getReport()?.slice ?? slice;
+            } catch {
+              // keep the slice already captured above
+            }
+            return this.newPivot({ slice, dataSource: { data: response.results } });
+          });
+          this.pivotInstances.clear();
+
+          this.hasLoadedData = true;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
+        },
+      });
+  }
+
+  private computeLocationBreakdown(rows: Record<string, any>[]): void {
+    const unknown = this.translate.instant('analysis.unknown_county');
+    const countCountyDistrict = (key: 'County' | 'District') => {
+      const counts: Record<string, number> = {};
+      rows.forEach((row) => {
+        const value = row[key] || unknown;
+        counts[value] = (counts[value] || 0) + 1;
+      });
+      return Object.keys(counts).map((name) => ({ name, value: counts[name] }));
     };
-    if (chart.group_by === 'attribute' && chart.group_by_attribute_key) {
-      params['group_by_attribute_key'] = chart.group_by_attribute_key;
-    }
-
-    this.postsService.get('stats', params).subscribe({
-      next: (response: any) => {
-        const rows = response?.result?.group_by_total_posts ?? [];
-        chart.data = rows.map((row: any) => ({
-          name: row.label || this.translate.instant('analysis.unlabeled'),
-          value: row.total,
-        }));
-      },
-    });
-  }
-
-  private previewChartByLocation(chart: ReportChart): void {
-    const field = chart.group_by === 'county' ? 'mgmt_lev_1' : 'mgmt_lev_2';
-    // See analysis-dashboard-tab.component.ts's loadCountyBreakdown() for
-    // why `only` is needed (avoids a server-side memory exhaustion on the
-    // full post payload) and why `q` must be '' rather than undefined.
-    const params = { ...this.buildFilterParams(), limit: 10000, only: `id,${field}` };
-    this.postsService.searchPosts('', '', params).subscribe({
-      next: (response: any) => {
-        const counts: Record<string, number> = {};
-        (response?.results ?? []).forEach((post: any) => {
-          const key = post[field] || this.translate.instant('analysis.unknown_county');
-          counts[key] = (counts[key] || 0) + 1;
-        });
-        chart.data = Object.keys(counts).map((name) => ({ name, value: counts[name] }));
-      },
-    });
-  }
-
-  public chartSeries(
-    chart: ReportChart,
-  ): { name: string; series: { name: string; value: number }[] }[] {
-    return [{ name: this.translate.instant('analysis.reports'), series: chart.data }];
-  }
-
-  /** True once at least one chart is grouping by county/district — shows the map toggle. */
-  public get hasLocationChart(): boolean {
-    return this.charts.some(
-      (chart) => chart.group_by === 'county' || chart.group_by === 'district',
-    );
+    this.countyData = countCountyDistrict('County');
+    this.districtData = countCountyDistrict('District');
   }
 
   public saveAsTemplate(): void {
@@ -245,11 +206,20 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
       if (!name) {
         return;
       }
-      const reportConfig: AnalysisChartConfig[] = this.charts.map((chart) => ({
-        group_by: chart.group_by,
-        group_by_attribute_key: chart.group_by_attribute_key || undefined,
-        chart_type: chart.chart_type,
-      }));
+      const reportConfig = this.pivots.map((pivot) => {
+        // getReport() can throw if called while the pivot is still settling
+        // (see the comment in applyDataToPivot()) — fall back to whatever
+        // report shape we already have rather than failing the whole save.
+        let report = pivot.initialReport;
+        try {
+          report = this.pivotInstances.get(pivot.id)?.getReport() ?? report;
+        } catch {
+          // fall back to `report` as initialized above
+        }
+        // dataSource.data is always re-fetched live on apply, never persisted.
+        const { dataSource, ...rest } = report;
+        return rest;
+      });
       const payload: Partial<AnalysisTemplate> = {
         name,
         form_id: this.selectedFormId ?? undefined,
@@ -262,10 +232,6 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
         report_config: reportConfig,
         status_filter: this.statusFilter.length ? this.statusFilter : undefined,
         tags_filter: this.tagsFilter.length ? this.tagsFilter : undefined,
-        // Fast-path summary columns, kept for backward compatibility.
-        group_by: reportConfig[0]?.group_by,
-        group_by_attribute_key: reportConfig[0]?.group_by_attribute_key,
-        chart_type: reportConfig[0]?.chart_type,
       };
       this.analysisTemplatesService.createTemplate(payload).subscribe({
         next: () => this.loadTemplates(),
@@ -281,7 +247,6 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
           return;
         }
         this.selectedFormId = template.form_id ?? null;
-        this.onFormChange();
         this.dateFrom = template.date_range_start
           ? new Date(template.date_range_start * 1000).toISOString().slice(0, 10)
           : null;
@@ -292,37 +257,18 @@ export class AnalysisReportBuilderTabComponent implements OnInit {
         this.tagsFilter = template.tags_filter ?? [];
         this.appliedTemplateName = template.name;
 
-        const reportConfig = template.report_config?.length
-          ? template.report_config
-          : ([
-              {
-                group_by: (template.group_by as AnalysisGroupBy) ?? 'status',
-                group_by_attribute_key: template.group_by_attribute_key,
-                chart_type: (template.chart_type as AnalysisChartType) ?? 'bar',
-              },
-            ] as AnalysisChartConfig[]);
-        this.charts = reportConfig.map((chart) => ({ ...chart, data: [] }));
+        this.lastFetchedRows = [];
+        this.hasLoadedData = false;
+        this.pivotInstances.clear();
+        const reportConfigs = template.report_config?.length ? template.report_config : [{}];
+        this.pivots = reportConfigs.map((report: any) =>
+          this.newPivot({ ...report, dataSource: { data: [] } }),
+        );
 
-        this.preview();
+        if (this.selectedFormId) {
+          this.loadData();
+        }
       },
     });
-  }
-
-  public exportPdf(): void {
-    if (!this.reportContainer) {
-      return;
-    }
-    const title = this.appliedTemplateName || this.translate.instant('analysis.ad_hoc_report');
-    const dateRangeText =
-      this.dateFrom || this.dateTo
-        ? `${this.translate.instant('analysis.date_range_label')}: ${
-            this.dateFrom ? dayjs(this.dateFrom).format('YYYY-MM-DD') : '…'
-          } – ${this.dateTo ? dayjs(this.dateTo).format('YYYY-MM-DD') : '…'}`
-        : '';
-    this.pdfExportService.exportChartsToPdf(
-      this.reportContainer.nativeElement,
-      title,
-      dateRangeText,
-    );
   }
 }

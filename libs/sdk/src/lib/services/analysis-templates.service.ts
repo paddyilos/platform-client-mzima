@@ -5,29 +5,25 @@ import { EnvLoader } from '../loader';
 import { ResourceService } from './resource.service';
 import { apiHelpers } from '../helpers';
 
-export type AnalysisChartType = 'bar' | 'pie' | 'line';
-export type AnalysisGroupBy = 'status' | 'form' | 'tags' | 'county' | 'district' | 'attribute';
-
-/** One chart panel of a (possibly multi-chart) Analysis report. */
-export interface AnalysisChartConfig {
-  group_by: AnalysisGroupBy;
-  group_by_attribute_key?: string;
-  chart_type: AnalysisChartType;
-}
-
 export interface AnalysisTemplate {
   id?: number;
   name: string;
   form_id?: number;
   date_range_start?: number;
   date_range_end?: number;
-  /** @deprecated fast-path summary of report_config[0]; kept for backward compatibility */
+  /** @deprecated pre-WebDataRocks single-chart fast-path column, unused by current UI */
   group_by?: string;
-  /** @deprecated fast-path summary of report_config[0]; kept for backward compatibility */
+  /** @deprecated pre-WebDataRocks single-chart fast-path column, unused by current UI */
   group_by_attribute_key?: string;
-  /** @deprecated fast-path summary of report_config[0]; kept for backward compatibility */
+  /** @deprecated pre-WebDataRocks single-chart fast-path column, unused by current UI */
   chart_type?: string;
-  report_config?: AnalysisChartConfig[];
+  /**
+   * One WebDataRocks `Report` (from `WebDataRocks.Pivot.getReport()`, with
+   * `dataSource.data` stripped — that's always re-fetched live on apply)
+   * per pivot instance in a multi-pivot report. Shape is library-defined
+   * (see `@webdatarocks/webdatarocks`'s `Report` type), opaque here.
+   */
+  report_config?: any[];
   status_filter?: string[];
   tags_filter?: number[];
   user_id?: number;

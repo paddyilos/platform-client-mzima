@@ -11,6 +11,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
+import { WebdatarocksPivotModule } from '@webdatarocks/ngx-webdatarocks';
 import { TranslateModule } from '@ngx-translate/core';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { AnalysisRoutingModule } from './analysis-routing.module';
@@ -44,6 +45,7 @@ import { SaveTemplateDialogComponent } from './save-template-dialog/save-templat
     MatDatepickerModule,
     MatNativeDateModule,
     LeafletModule,
+    WebdatarocksPivotModule,
     TranslateModule,
   ],
 })

@@ -10,8 +10,7 @@
       <tr>
         <th>{{ 'analysis.template_column_name' | translate }}</th>
         <th>{{ 'analysis.template_column_survey' | translate }}</th>
-        <th>{{ 'analysis.template_column_group_by' | translate }}</th>
-        <th>{{ 'analysis.template_column_chart_type' | translate }}</th>
+        <th>{{ 'analysis.template_column_pivots' | translate }}</th>
         <th>{{ 'analysis.template_column_created' | translate }}</th>
         <th>{{ 'analysis.template_column_actions' | translate }}</th>
       </tr>
@@ -20,8 +19,7 @@
       <tr *ngFor="let template of templates">
         <td>{{ template.name }}</td>
         <td>{{ surveyName(template.form_id) }}</td>
-        <td>{{ template.group_by }}</td>
-        <td>{{ template.chart_type }}</td>
+        <td>{{ template.report_config?.length || 0 }}</td>
         <td>{{ (template.created ? template.created * 1000 : null) | date : 'mediumDate' }}</td>
         <td class="actions">
           <button mat-stroked-button (click)="apply(template)">

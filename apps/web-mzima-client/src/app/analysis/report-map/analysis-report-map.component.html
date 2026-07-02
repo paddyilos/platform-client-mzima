@@ -1,6 +1,26 @@
-<div
-  class="analysis-report-map"
-  leaflet
-  [leafletOptions]="leafletOptions"
-  (leafletMapReady)="onMapReady($event)"
-></div>
+<div class="analysis-report-map-wrapper">
+  <div class="analysis-report-map-wrapper__toggle">
+    <button
+      mat-stroked-button
+      type="button"
+      [color]="activeDimension === 'county' ? 'primary' : undefined"
+      (click)="setDimension('county')"
+    >
+      {{ 'analysis.county' | translate }}
+    </button>
+    <button
+      mat-stroked-button
+      type="button"
+      [color]="activeDimension === 'district' ? 'primary' : undefined"
+      (click)="setDimension('district')"
+    >
+      {{ 'analysis.district' | translate }}
+    </button>
+  </div>
+  <div
+    class="analysis-report-map"
+    leaflet
+    [leafletOptions]="leafletOptions"
+    (leafletMapReady)="onMapReady($event)"
+  ></div>
+</div>

@@ -2,8 +2,7 @@
   padding: 16px 0;
 
   .filters,
-  .actions,
-  .chart-config__controls {
+  .actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -11,23 +10,37 @@
     margin-bottom: 16px;
   }
 
-  .chart-config {
-    padding: 16px;
-    margin-bottom: 16px;
-    border: 1px solid var(--color-neutral-40, #e0e0e0);
-    border-radius: 8px;
+  .data-status {
+    margin: 0 0 16px;
+    font-size: 13px;
+    opacity: 0.8;
 
-    h3 {
-      margin: 0 0 12px;
-      font-size: 15px;
+    &__truncated {
+      margin-left: 8px;
+      color: var(--color-warning, #b3661e);
     }
   }
 
-  .add-chart-btn {
+  .pivot-panel {
+    padding: 16px;
     margin-bottom: 16px;
-  }
+    border: 1px solid var(--color-neutral-40, #dadbdc);
+    border-radius: 8px;
 
-  .chart-cover {
-    min-height: 360px;
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+
+      h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+    }
+
+    app-wbr-pivot {
+      display: block;
+    }
   }
 }

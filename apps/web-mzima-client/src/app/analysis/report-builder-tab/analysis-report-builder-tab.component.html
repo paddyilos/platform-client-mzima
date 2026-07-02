@@ -2,8 +2,7 @@
   <div class="filters">
     <mat-form-field appearance="outline">
       <mat-label>{{ 'analysis.select_survey' | translate }}</mat-label>
-      <mat-select [(ngModel)]="selectedFormId" (selectionChange)="onFormChange()">
-        <mat-option [value]="null">{{ 'analysis.all_surveys' | translate }}</mat-option>
+      <mat-select [(ngModel)]="selectedFormId" required>
         <mat-option [value]="form.id" *ngFor="let form of forms">{{ form.name }}</mat-option>
       </mat-select>
     </mat-form-field>
@@ -35,89 +34,50 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+
+    <button
+      mat-flat-button
+      color="primary"
+      [disabled]="!selectedFormId || isLoading"
+      (click)="loadData()"
+    >
+      {{ 'analysis.load_data' | translate }}
+    </button>
   </div>
 
-  <div #reportContainer>
-    <div class="chart-config" *ngFor="let chart of charts; let i = index">
-      <h3>{{ 'analysis.chart_label' | translate : { number: i + 1 } }}</h3>
+  <p class="data-status" *ngIf="hasLoadedData">
+    {{ 'analysis.data_status' | translate : { loaded: loadedCount, total: totalCount } }}
+    <span class="data-status__truncated" *ngIf="isTruncated">
+      {{ 'analysis.data_truncated' | translate }}
+    </span>
+  </p>
 
-      <div class="chart-config__controls">
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'analysis.group_by' | translate }}</mat-label>
-          <mat-select [(ngModel)]="chart.group_by">
-            <mat-option value="status">{{ 'analysis.status' | translate }}</mat-option>
-            <mat-option value="form">{{ 'analysis.survey' | translate }}</mat-option>
-            <mat-option value="tags">{{ 'analysis.categories' | translate }}</mat-option>
-            <mat-option value="county">{{ 'analysis.county' | translate }}</mat-option>
-            <mat-option value="district">{{ 'analysis.district' | translate }}</mat-option>
-            <mat-option value="attribute" [disabled]="!surveyFields.length">
-              {{ 'analysis.attribute' | translate }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" *ngIf="chart.group_by === 'attribute'">
-          <mat-label>{{ 'analysis.attribute_key' | translate }}</mat-label>
-          <mat-select [(ngModel)]="chart.group_by_attribute_key">
-            <mat-option [value]="field.key" *ngFor="let field of surveyFields">
-              {{ field.label }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'analysis.chart_type' | translate }}</mat-label>
-          <mat-select [(ngModel)]="chart.chart_type">
-            <mat-option value="bar">{{ 'analysis.chart_bar' | translate }}</mat-option>
-            <mat-option value="pie">{{ 'analysis.chart_pie' | translate }}</mat-option>
-            <mat-option value="line">{{ 'analysis.chart_line' | translate }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <button
-          mat-icon-button
-          type="button"
-          [attr.aria-label]="'analysis.remove_chart' | translate"
-          [disabled]="charts.length === 1"
-          (click)="removeChart(i)"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-
-      <div class="chart-cover" *ngIf="hasPreviewed">
-        <ng-container [ngSwitch]="chart.chart_type">
-          <ngx-charts-bar-vertical
-            *ngSwitchCase="'bar'"
-            [scheme]="colorScheme"
-            [results]="chart.data"
-            [xAxis]="true"
-            [yAxis]="true"
-          ></ngx-charts-bar-vertical>
-          <ngx-charts-pie-chart
-            *ngSwitchCase="'pie'"
-            [scheme]="colorScheme"
-            [results]="chart.data"
-            [labels]="true"
-          ></ngx-charts-pie-chart>
-          <ngx-charts-line-chart
-            *ngSwitchCase="'line'"
-            [scheme]="colorScheme"
-            [results]="chartSeries(chart)"
-            [xAxis]="true"
-            [yAxis]="true"
-            [autoScale]="true"
-          ></ngx-charts-line-chart>
-        </ng-container>
-      </div>
+  <div class="pivot-panel" *ngFor="let pivot of pivots; let i = index">
+    <div class="pivot-panel__header">
+      <h3>{{ 'analysis.pivot_label' | translate : { number: i + 1 } }}</h3>
+      <button
+        mat-icon-button
+        type="button"
+        [attr.aria-label]="'analysis.remove_pivot' | translate"
+        [disabled]="pivots.length === 1"
+        (click)="removePivot(i)"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
+    <app-wbr-pivot
+      [toolbar]="true"
+      [height]="500"
+      [report]="pivot.initialReport"
+      (ready)="onPivotReady($event, pivot.id)"
+    ></app-wbr-pivot>
   </div>
-
-  <button mat-stroked-button type="button" class="add-chart-btn" (click)="addChart()">
-    {{ 'analysis.add_chart' | translate }}
-  </button>
 
   <div class="actions">
+    <button mat-stroked-button type="button" (click)="addPivot()">
+      {{ 'analysis.add_pivot' | translate }}
+    </button>
+
     <mat-form-field appearance="outline" *ngIf="templates.length">
       <mat-label>{{ 'analysis.load_template' | translate }}</mat-label>
       <mat-select (selectionChange)="applyTemplate($event.value)">
@@ -127,22 +87,22 @@
       </mat-select>
     </mat-form-field>
 
-    <button mat-flat-button color="primary" (click)="preview()">
-      {{ 'analysis.preview' | translate }}
-    </button>
-    <button mat-stroked-button [disabled]="!hasPreviewed" (click)="saveAsTemplate()">
+    <button mat-stroked-button [disabled]="!hasLoadedData" (click)="saveAsTemplate()">
       {{ 'analysis.save_as_template' | translate }}
     </button>
-    <button mat-stroked-button type="button" [disabled]="!hasPreviewed" (click)="exportPdf()">
-      {{ 'analysis.export_pdf' | translate }}
-    </button>
-    <button mat-stroked-button type="button" *ngIf="hasLocationChart" (click)="showMap = !showMap">
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="!hasLoadedData"
+      (click)="showMap = !showMap"
+    >
       {{ (showMap ? 'analysis.hide_map' : 'analysis.show_map') | translate }}
     </button>
   </div>
 
   <app-analysis-report-map
-    *ngIf="showMap && hasPreviewed"
-    [charts]="charts"
+    *ngIf="showMap && hasLoadedData"
+    [countyData]="countyData"
+    [districtData]="districtData"
   ></app-analysis-report-map>
 </div>

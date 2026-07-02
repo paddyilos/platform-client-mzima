@@ -110,61 +110,123 @@ thin-layer approach:
 
 Replaces the old UNICC fork's `/dashboard/analysis` (an inner "Dashboard" +
 "Analysis" tabbed page) and `/dashboard/analysis-templates`. The old
-platform used the commercial **Flexmonster** pivot-table widget for its
-report builder — that is *not* ported; charts use `@swimlane/ngx-charts`
-(already a project dependency, used by the stock `activity/bar-chart`
-component) and tabs use `mat-tab-group`. Parity with Flexmonster's
-arbitrary drag-and-drop pivoting is instead achieved via a working
-per-attribute group-by (see the `EloquentPostRepository.php` row in
-`ushahidi-api/LIBERIA_CUSTOM.md`), multi-chart reports (an array of
-single-dimension charts, rather than one arbitrary 2D crosstab), and a
-small embedded choropleth map view. PDF export (`pdfmake` + `html2canvas`,
-the same two open-source libraries the old platform used) **is** ported.
+platform's report builder used the commercial **Flexmonster** pivot-table
+widget. This was first re-approximated with `@swimlane/ngx-charts` alone
+(no real pivoting), then rebuilt around **WebDataRocks**
+(`@webdatarocks/ngx-webdatarocks`) — the free sibling product from the
+same vendor as Flexmonster, chosen specifically because Flexmonster itself
+is commercial. WebDataRocks gives genuine arbitrary drag-and-drop
+rows/columns/measures pivoting, matching the old platform far more closely
+than the chart-picker approach did. The **Dashboard** tab is unaffected by
+any of this — it never used Flexmonster (the old platform's equivalent was
+a separate Chart.js-based `DashboardComponent`) and still uses
+`@swimlane/ngx-charts`.
+
+**WebDataRocks license constraints — do not try to work around these:**
+- **Hard 1MB data-payload cap**, enforced in the library's own proprietary
+  code (confirmed via its license agreement: "you may not... modify any
+  limitations included in Proprietary Code, including the 1 MB limitation
+  on the data size loaded to WebDataRocks"). This is why a dedicated lean
+  backend endpoint exists (`PivotDataController`, see
+  `ushahidi-api/LIBERIA_CUSTOM.md`) instead of feeding it stock post data.
+- **"WebDataRocks.com" branding cannot be hidden** without a paid
+  Flexmonster license (visible bottom-right of every pivot grid). Do not
+  attempt to hide/remove it via CSS — that violates the license terms this
+  deployment relies on to use the tool for free.
+- WebDataRocks is **grid-only** — unlike paid Flexmonster, it has no
+  built-in chart rendering. The Report Builder is a pivot table, not a
+  chart; if PBO ever wants chart visuals *from* pivoted data, that needs a
+  separate charting library wired to WebDataRocks' data events — not
+  attempted here.
 
 New isolated files (no stock-file diff beyond the table above):
 
 | File | Purpose |
 |---|---|
 | `apps/web-mzima-client/src/app/core/guards/access-analysis.guard.ts` | Route guard checking `Permissions.AccessAnalysis` from `localStorage`, same pattern as `manage-settings.guard.ts`. |
-| `apps/web-mzima-client/src/app/analysis/**` | `/analysis` page — a `mat-tab-group` shell (`analysis.component.ts`) with a **Dashboard** tab (total reports stat, reports-by-county pie chart, monthly + daily reports-trend line charts with prev/next year/month navigation, an All/Custom date-filter mode, and an independent survey selector scoping just the trend charts) and a **Report Builder** tab (ad-hoc filter/group-by/chart-type builder against `GET posts/stats`, with status/tag filters, a dynamic per-survey attribute picker, multi-chart reports via "+ Add another chart", a "Show map" toggle, PDF export, and "Save as Template" / "Load Template"). Includes `save-template-dialog/` (name a new template) and `report-map/` (the map toggle's embedded choropleth, see below). |
-| `apps/web-mzima-client/src/app/analysis/analysis-pdf-export.service.ts` | `html2canvas` snapshot of the report container → `pdfmake` PDF, download. Ports the old platform's `post-analysis.component.ts`'s `generatePdf()`. |
-| `apps/web-mzima-client/src/app/analysis/report-map/**` | Small, standalone Leaflet choropleth (not a reuse of the full page-level `MapComponent`, which is wired to global filter/results state) for the Report Builder's "Show map" toggle — colors counties/districts by report count. Reuses the same `assets/shapefiles/liberia/administrative-levels.zip` asset and `shpjs` parsing approach as `map.component.ts`'s `addBoundaryLayers()`. Purely presentational, driven by `@Input() charts`. |
+| `apps/web-mzima-client/src/app/analysis/**` | `/analysis` page — a `mat-tab-group` shell (`analysis.component.ts`) with a **Dashboard** tab (total reports stat, reports-by-county pie chart, monthly + daily reports-trend line charts with prev/next year/month navigation, an All/Custom date-filter mode, and an independent survey selector scoping just the trend charts) and a **Report Builder** tab: a required survey picker + date range + status/tag filters, a "Load data" button, one or more `<app-wbr-pivot>` panels ("+ Add another pivot"), a "Show map" toggle, and "Save as Template" / "Load Template". PDF/Excel/HTML export is WebDataRocks' own built-in toolbar feature — no custom export code. Includes `save-template-dialog/` (name a new template) and `report-map/` (the map toggle's embedded choropleth, see below). |
+| `apps/web-mzima-client/src/app/analysis/report-map/**` | Small, standalone Leaflet choropleth (not a reuse of the full page-level `MapComponent`, which is wired to global filter/results state) for the Report Builder's "Show map" toggle — colors counties/districts by report count, with a County/District toggle of its own. Reuses the same `assets/shapefiles/liberia/administrative-levels.zip` asset and `shpjs` parsing approach as `map.component.ts`'s `addBoundaryLayers()`. Purely presentational, driven by `@Input() countyData`/`@Input() districtData` (pre-aggregated counts computed client-side from the same pivot-data fetch — not tied to whatever dimensions a pivot's slice currently has, so it works regardless of what the user has dragged into rows/columns). |
 | `apps/web-mzima-client/src/app/analysis-templates/**` | `/analysis-templates` page — lists all saved templates (`AnalysisTemplatesService`), with Apply (deep-links to `/analysis?template=<id>`), Edit (`rename-template-dialog/`), and Delete (via the stock `ConfirmModalService`) actions. |
-| `libs/sdk/src/lib/services/analysis-templates.service.ts` | CRUD SDK client for `analysis_templates` (`v5/analysis-templates`), generic `ResourceService<T>`-based, same shape as `alerts.service.ts`. Also exports the `AnalysisChartConfig`/`AnalysisChartType`/`AnalysisGroupBy` types shared by `analysis/` and `analysis-templates/` (one chart panel's config; a template's `report_config` is `AnalysisChartConfig[]`). |
+| `libs/sdk/src/lib/services/analysis-templates.service.ts` | CRUD SDK client for `analysis_templates` (`v5/analysis-templates`), generic `ResourceService<T>`-based, same shape as `alerts.service.ts`. `AnalysisTemplate.report_config` is typed loosely (`any[]`) — its shape is a WebDataRocks `Report` object (library-defined, see `@webdatarocks/webdatarocks`'s own types), not something this codebase models. |
+| `libs/sdk/src/lib/services/analysis-pivot-data.service.ts` | SDK client for `GET v5/analysis-pivot-data` (`PivotDataController`, see `ushahidi-api/LIBERIA_CUSTOM.md`) — lean flat per-post rows for the pivot table. Converts `status`/`tags` array params to the `status[]`/`tags[]` query-key convention (see `PostsService.postParamsMapper()`) internally, so callers just pass plain arrays. |
 | `apps/web-mzima-client/src/assets/icons/chart-bar.svg` | Nav icon, same style/viewBox as the other icons in this set. |
+| `package.json` | `pdfmake`/`html2canvas`/`@types/pdfmake` (from the first ngx-charts-based build) removed — no longer needed now that WebDataRocks' own toolbar handles export. `@webdatarocks/ngx-webdatarocks` added (pulls in `@webdatarocks/webdatarocks` as a dependency automatically). |
+| `src/styles.scss` | `@import '~@webdatarocks/webdatarocks/webdatarocks.min.css';` added, same `~`-prefixed node_modules import convention already used for `quill`/`leaflet-control-geocoder` above it in the same file. |
 
-**Multi-chart template shape**: a saved template's `report_config` field
-(`AnalysisChartConfig[]`) is an array of `{group_by, group_by_attribute_key?,
-chart_type}`, one entry per chart panel — the ngx-charts equivalent of the
-old platform's "+ Add more charts". `status_filter`/`tags_filter` are
-template-wide (apply to every chart in `report_config`), mirroring the old
-platform's `FilterCriteria` having `region`/`category` as siblings of
-`reportConfig[]` rather than nested inside it. See the
-`20260702000001_liberia_analysis_templates_multi_chart.php` row in
-`ushahidi-api/LIBERIA_CUSTOM.md` for the backend schema this maps to, and
-`migration/migrate-liberia-analysis-templates.php` (same repo) for how the
-old platform's Flexmonster-JSON templates were best-effort ported into this
-shape.
+**Report Builder data flow**: survey selection is **required** (not
+optional "All surveys") — the pivot needs one survey's attribute set and a
+bounded row count. "Load data" calls `AnalysisPivotDataService.list()`,
+which returns `{count, total, truncated, results}` — `results` is an array
+of flat `{ "Post ID", "Status", "Date", "Title", "County", "District",
+<attribute label>: value, ... }` objects, one per post. WebDataRocks
+**auto-detects pivotable fields from the data's own keys** — there is no
+separate "attribute picker" UI or field-discovery code on the frontend
+(unlike the first ngx-charts-based build, which had to fetch a survey's
+fields separately to populate a group-by dropdown); whatever keys exist in
+`results[0]` become draggable fields in WebDataRocks' own Fields panel.
 
-**Dashboard trend-chart caveat**: the old platform had a dedicated
-`posts/dashboardtrend` backend endpoint taking literal `date_month`/
-`date_year` params. The new stack has no equivalent, so
-`analysis-dashboard-tab.component.ts`'s monthly/daily trend charts
-approximate it via `posts/stats`'s `timeline`/`timeline_interval`
-bucketing, bounded by `created_after`/`created_before` for the selected
-year (monthly chart) or month (daily chart). `timeline_interval: 2629800`
-(≈1 calendar month in seconds) for the monthly chart is an approximation,
-not exact calendar-month buckets — acceptable for a 12-point yearly trend,
-but worth knowing if bucket boundaries ever look off by a day near
-month-end.
+**Multi-pivot template shape**: a saved template's `report_config` is an
+array of WebDataRocks `Report` objects (each `{slice, options, ...}`, with
+`dataSource` always stripped before saving — data is never persisted, only
+re-fetched live on apply), one per `<app-wbr-pivot>` panel — the direct
+equivalent of the old platform's "+ Add more charts" and, because
+WebDataRocks' `slice.rows[]`/`columns[]`/`measures[]` shape closely matches
+Flexmonster's own, a much higher-fidelity migration target than the
+previous single-dimension `{group_by, chart_type}` shape was (see
+`migration/migrate-liberia-analysis-templates.php` in the sibling
+`ushahidi-api` repo). `status_filter`/`tags_filter` are template-wide
+(apply to every pivot in `report_config`), mirroring the old platform's
+`FilterCriteria` having `region`/`category` as siblings of `reportConfig[]`
+rather than nested inside it.
+
+**Two library-integration bugs found via live manual testing against the
+real backend (not caught by `tsc`/`eslint`/build — WebDataRocks' JS runs
+fine at compile time and only fails at runtime), fixed, and worth knowing
+if you touch this code:**
+- **Never call `getReport()` immediately after the `(ready)` event fires** —
+  it throws inside the minified library (`TypeError: Cannot read
+  properties of undefined`). `ready` fires as soon as the JS constructor
+  returns, but the pivot's own internal state isn't fully settled yet.
+  `saveAsTemplate()` wraps its `getReport()` call in try/catch (falls back
+  to the pivot's last-known report) for this reason — a real save shortly
+  after user interaction is very unlikely to hit the race, but it's cheap
+  insurance.
+- **`updateData()` does not reliably preserve a pre-configured `slice`**
+  when transitioning a pivot from empty data to populated data — confirmed
+  by manually applying a saved template (specific `slice.columns`
+  configured) and watching WebDataRocks silently replace it with its own
+  auto-generated default once real data arrived via `updateData()`. The
+  fix (`loadData()` in `analysis-report-builder-tab.component.ts`):
+  **always construct a fresh `<app-wbr-pivot>` with the data already baked
+  into its initial `report` input**, rather than mounting an empty pivot
+  and patching data in afterward. Each pivot's current slice is preserved
+  across reloads by reading it live via `getReport()` where an instance is
+  already mounted (e.g. changing the date filter and reloading), falling
+  back to the last-known `initialReport.slice` otherwise (e.g. applying a
+  template, where no instance exists yet). `<app-wbr-pivot>`'s own
+  `[report]` `@Input()` is only ever read once, at its `ngOnInit()` (see
+  `ngx-webdatarocks.component.mjs` — no `ngOnChanges` handling), which is
+  exactly why this can't be fixed by just reassigning the input.
+- Relatedly: **`AnalysisComponent` needs `[selectedIndex]` wired to the
+  `?template=` query param.** `/analysis-templates`'s "Apply" action
+  navigates to `/analysis?template=<id>`, which `AnalysisReportBuilderTabComponent`
+  reads in its own `ngOnInit()` — but `mat-tab-group` doesn't mount
+  inactive tab content, and Dashboard (index 0) is the default tab, so a
+  fresh navigation would land on Dashboard and the Report Builder
+  component (and its template-apply logic) would never even be created.
+  `AnalysisComponent`'s constructor now sets `selectedTabIndex = 1`
+  whenever the query param is present, verified live end-to-end (save a
+  template → apply it via a fresh navigation → both filters and the
+  pivot's slice come back correctly, re-populated with live data).
 
 Both pages are gated end-to-end: nav link hidden unless
 `isLoggedIn && Access analysis` (see `menu-list-links` row above), routes
-guarded client-side by `AccessAnalysisGuard`, and the templates CRUD API
-itself re-checks the same permission server-side
-(`AnalysisTemplateController::requireAccessAnalysis()` in the sibling
-`ushahidi-api` fork — see its `LIBERIA_CUSTOM.md`) — the frontend guard
-alone is not the security boundary.
+guarded client-side by `AccessAnalysisGuard`, and the templates/pivot-data
+APIs themselves re-check the same permission server-side
+(`AnalysisTemplateController`/`PivotDataController`'s
+`requireAccessAnalysis()` in the sibling `ushahidi-api` fork — see its
+`LIBERIA_CUSTOM.md`) — the frontend guard alone is not the security
+boundary.
 
 `posts.mgmt_lev_1`/`mgmt_lev_2` (county/district) already existed
 server-side for Get Alerts/LERN import but weren't exposed via the posts
@@ -172,21 +234,15 @@ API; the backend fork adds them to `Post::ALLOWED_FIELDS` (not
 `$fillable` — that governs mass-assignment, not field selection) so the
 Analysis dashboard's county chart can read them from `GET /api/v5/posts`.
 
-Two things worth knowing if you touch the county/district fetch
-(`loadCountyBreakdown()` in `dashboard-tab/`, `previewByLocation()` in
-`report-builder-tab/`), found while testing against the real ~5,700-post
-dataset:
-- `PostsService.searchPosts(url, query, params)` always merges a `q` param
-  in; pass `query` as `''`, never `undefined` — Angular's `HttpClient`
-  serializes an `undefined` param value as the literal string
-  `"undefined"`, which the backend's full-text search then treats as a
-  real (zero-match) search term, silently returning an empty result set.
-- The fetch requests `only: 'id,mgmt_lev_1'` (a stock sparse-fieldset
-  param, `Post::ALLOWED_FIELDS`-backed) rather than full post objects.
-  Fetching ~5,700 full posts (media/translations/allowed_privileges/etc.)
-  in one request exhausts this deployment's 128MB PHP `memory_limit`
-  server-side (`500` with no body); the lean fieldset keeps the payload
-  small regardless of dataset size.
+One thing worth knowing if you touch the Dashboard tab's county fetch
+(`loadCountyBreakdown()` in `dashboard-tab/` — the Report Builder's
+equivalent now goes through `PivotDataController` instead, see above),
+found while testing against the real ~5,700-post dataset:
+`PostsService.searchPosts(url, query, params)` always merges a `q` param
+in; pass `query` as `''`, never `undefined` — Angular's `HttpClient`
+serializes an `undefined` param value as the literal string `"undefined"`,
+which the backend's full-text search then treats as a real (zero-match)
+search term, silently returning an empty result set.
 
 ## get-alerts / contact-us backend
 
