@@ -2,11 +2,28 @@
   padding: 16px 0;
 
   .filters,
-  .actions {
+  .actions,
+  .chart-config__controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-config {
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--color-neutral-40, #e0e0e0);
+    border-radius: 8px;
+
+    h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+  }
+
+  .add-chart-btn {
     margin-bottom: 16px;
   }
 

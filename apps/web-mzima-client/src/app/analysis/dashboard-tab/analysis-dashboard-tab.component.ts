@@ -13,9 +13,13 @@ interface StatsRow {
 
 /**
  * "Dashboard" tab of the Liberia PBO Analysis page — total reports stat,
- * reports-by-county pie chart, and a reports trend line chart. Replaces the
- * old UNICC fork's dashboard.component.ts (posts/dashboardregion,
- * posts/dashboardtrend). See ushahidi-client/LIBERIA_CUSTOM.md.
+ * reports-by-county pie chart, and monthly/daily reports trend charts.
+ * Replaces the old UNICC fork's dashboard.component.ts (posts/dashboardregion,
+ * posts/dashboardtrend — the new stack has no equivalent server-side
+ * month/year-bounded endpoint, so the trend split is approximated via
+ * posts/stats's timeline/timeline_interval bucketing, bounded by
+ * created_after/created_before for the selected year or month). See
+ * ushahidi-client/LIBERIA_CUSTOM.md.
  */
 @Component({
   selector: 'app-analysis-dashboard-tab',
@@ -25,11 +29,21 @@ interface StatsRow {
 export class AnalysisDashboardTabComponent implements OnInit {
   public forms: any[] = [];
   public selectedFormId: number | 'all' = 'all';
-  public trendInterval: 'day' | 'month' = 'day';
+
+  public filterMode: 'all' | 'custom' = 'all';
+  public dateFrom: Date | null = null;
+  public dateTo: Date | null = null;
+
+  // Independent survey selector scoping just the two trend charts, mirroring
+  // the old platform's separate "chart group" selector.
+  public chartFormId: number | 'all' = 'all';
+  public selectedYear = dayjs().year();
+  public selectedMonth = dayjs().month(); // 0-11
 
   public totalReports = 0;
   public countyData: { name: string; value: number }[] = [];
-  public trendData: { name: string; series: { name: string; value: number }[] }[] = [];
+  public monthlyTrendData: { name: string; series: { name: string; value: number }[] }[] = [];
+  public dailyTrendData: { name: string; series: { name: string; value: number }[] }[] = [];
 
   public colorScheme: Color = {
     name: 'Custom color',
@@ -51,12 +65,21 @@ export class AnalysisDashboardTabComponent implements OnInit {
       },
     });
     this.refresh();
+    this.refreshTrends();
   }
 
   private baseFilterParams(): Record<string, any> {
     const params: Record<string, any> = {};
     if (this.selectedFormId !== 'all') {
       params['form'] = [this.selectedFormId];
+    }
+    if (this.filterMode === 'custom') {
+      if (this.dateFrom) {
+        params['created_after'] = dayjs(this.dateFrom).format('YYYY-MM-DD');
+      }
+      if (this.dateTo) {
+        params['created_before'] = dayjs(this.dateTo).format('YYYY-MM-DD');
+      }
     }
     return params;
   }
@@ -65,14 +88,28 @@ export class AnalysisDashboardTabComponent implements OnInit {
     this.refresh();
   }
 
-  public onIntervalChange(): void {
-    this.loadTrend();
+  public onFilterModeChange(): void {
+    if (this.filterMode === 'all') {
+      this.refresh();
+    }
+  }
+
+  public onDateRangeApply(): void {
+    this.refresh();
+  }
+
+  public onChartFormChange(): void {
+    this.refreshTrends();
   }
 
   public refresh(): void {
     this.loadTotal();
     this.loadCountyBreakdown();
-    this.loadTrend();
+  }
+
+  public refreshTrends(): void {
+    this.loadMonthlyTrend();
+    this.loadDailyTrend();
   }
 
   private loadTotal(): void {
@@ -105,25 +142,93 @@ export class AnalysisDashboardTabComponent implements OnInit {
     });
   }
 
-  private loadTrend(): void {
-    const timelineInterval = this.trendInterval === 'day' ? 86400 : 2629800;
+  private chartFilterParams(): Record<string, any> {
+    const params: Record<string, any> = {};
+    if (this.chartFormId !== 'all') {
+      params['form'] = [this.chartFormId];
+    }
+    return params;
+  }
+
+  public get selectedYearLabel(): string {
+    return String(this.selectedYear);
+  }
+
+  public prevYear(): void {
+    this.selectedYear -= 1;
+    this.loadMonthlyTrend();
+  }
+
+  public nextYear(): void {
+    this.selectedYear += 1;
+    this.loadMonthlyTrend();
+  }
+
+  private loadMonthlyTrend(): void {
+    const start = dayjs().year(this.selectedYear).startOf('year');
+    const end = start.endOf('year');
     const params = {
-      ...this.baseFilterParams(),
+      ...this.chartFilterParams(),
+      created_after: start.format('YYYY-MM-DD'),
+      created_before: end.format('YYYY-MM-DD'),
       timeline: true,
-      timeline_interval: timelineInterval,
+      // ~1 calendar month; exact enough for a 12-bucket yearly trend.
+      timeline_interval: 2629800,
     };
     this.postsService.get('stats', params).subscribe({
       next: (response: any) => {
         const rows: StatsRow[] = response?.result?.group_by_total_posts ?? [];
-        const format = this.trendInterval === 'day' ? 'MMM D' : 'MMM YYYY';
         const series = rows
           .filter((row) => row.time_label)
           .sort((a, b) => (a.time_label ?? 0) - (b.time_label ?? 0))
           .map((row) => ({
-            name: dayjs.unix(row.time_label as number).format(format),
+            name: dayjs.unix(row.time_label as number).format('MMM'),
             value: row.total,
           }));
-        this.trendData = [{ name: this.translate.instant('analysis.reports'), series }];
+        this.monthlyTrendData = [{ name: this.translate.instant('analysis.reports'), series }];
+      },
+    });
+  }
+
+  public get selectedMonthLabel(): string {
+    return dayjs().year(this.selectedYear).month(this.selectedMonth).format('MMMM YYYY');
+  }
+
+  public prevMonth(): void {
+    const prev = dayjs().year(this.selectedYear).month(this.selectedMonth).subtract(1, 'month');
+    this.selectedYear = prev.year();
+    this.selectedMonth = prev.month();
+    this.loadDailyTrend();
+  }
+
+  public nextMonth(): void {
+    const next = dayjs().year(this.selectedYear).month(this.selectedMonth).add(1, 'month');
+    this.selectedYear = next.year();
+    this.selectedMonth = next.month();
+    this.loadDailyTrend();
+  }
+
+  private loadDailyTrend(): void {
+    const start = dayjs().year(this.selectedYear).month(this.selectedMonth).startOf('month');
+    const end = start.endOf('month');
+    const params = {
+      ...this.chartFilterParams(),
+      created_after: start.format('YYYY-MM-DD'),
+      created_before: end.format('YYYY-MM-DD'),
+      timeline: true,
+      timeline_interval: 86400,
+    };
+    this.postsService.get('stats', params).subscribe({
+      next: (response: any) => {
+        const rows: StatsRow[] = response?.result?.group_by_total_posts ?? [];
+        const series = rows
+          .filter((row) => row.time_label)
+          .sort((a, b) => (a.time_label ?? 0) - (b.time_label ?? 0))
+          .map((row) => ({
+            name: dayjs.unix(row.time_label as number).format('D'),
+            value: row.total,
+          }));
+        this.dailyTrendData = [{ name: this.translate.instant('analysis.reports'), series }];
       },
     });
   }

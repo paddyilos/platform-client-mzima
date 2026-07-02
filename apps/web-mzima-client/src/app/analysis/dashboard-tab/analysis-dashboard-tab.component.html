@@ -11,16 +11,32 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-select
-        [(ngModel)]="trendInterval"
-        (selectionChange)="onIntervalChange()"
-        [placeholder]="'analysis.trend_interval' | translate"
-      >
-        <mat-option value="day">{{ 'analysis.daily' | translate }}</mat-option>
-        <mat-option value="month">{{ 'analysis.monthly' | translate }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <mat-radio-group [(ngModel)]="filterMode" (ngModelChange)="onFilterModeChange()">
+      <mat-radio-button value="all">{{ 'analysis.filter_mode_all' | translate }}</mat-radio-button>
+      <mat-radio-button value="custom">{{
+        'analysis.filter_mode_custom' | translate
+      }}</mat-radio-button>
+    </mat-radio-group>
+
+    <ng-container *ngIf="filterMode === 'custom'">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'analysis.date_range_label' | translate }}</mat-label>
+        <mat-date-range-input [rangePicker]="dashboardDateRangePicker">
+          <input
+            matStartDate
+            [(ngModel)]="dateFrom"
+            [placeholder]="'analysis.date_from' | translate"
+          />
+          <input matEndDate [(ngModel)]="dateTo" [placeholder]="'analysis.date_to' | translate" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="dashboardDateRangePicker"></mat-datepicker-toggle>
+        <mat-date-range-picker #dashboardDateRangePicker></mat-date-range-picker>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" (click)="onDateRangeApply()">
+        {{ 'analysis.apply' | translate }}
+      </button>
+    </ng-container>
   </div>
 
   <div class="stat-card">
@@ -39,12 +55,61 @@
       >
       </ngx-charts-pie-chart>
     </div>
+  </div>
 
+  <div class="trend-filters">
+    <mat-form-field appearance="outline">
+      <mat-select
+        [(ngModel)]="chartFormId"
+        (selectionChange)="onChartFormChange()"
+        [placeholder]="'analysis.chart_survey' | translate"
+      >
+        <mat-option value="all">{{ 'analysis.all_surveys' | translate }}</mat-option>
+        <mat-option [value]="form.id" *ngFor="let form of forms">{{ form.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="charts">
     <div class="chart-cover">
-      <h2>{{ 'analysis.reports_trend' | translate }}</h2>
+      <div class="chart-cover__nav">
+        <h2>{{ 'analysis.monthly_trend' | translate }}</h2>
+        <div class="chart-cover__nav-controls">
+          <button mat-icon-button type="button" (click)="prevYear()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span>{{ selectedYearLabel }}</span>
+          <button mat-icon-button type="button" (click)="nextYear()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
       <ngx-charts-line-chart
         [scheme]="colorScheme"
-        [results]="trendData"
+        [results]="monthlyTrendData"
+        [xAxis]="true"
+        [yAxis]="true"
+        [autoScale]="true"
+      >
+      </ngx-charts-line-chart>
+    </div>
+
+    <div class="chart-cover">
+      <div class="chart-cover__nav">
+        <h2>{{ 'analysis.daily_trend' | translate }}</h2>
+        <div class="chart-cover__nav-controls">
+          <button mat-icon-button type="button" (click)="prevMonth()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span>{{ selectedMonthLabel }}</span>
+          <button mat-icon-button type="button" (click)="nextMonth()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+      <ngx-charts-line-chart
+        [scheme]="colorScheme"
+        [results]="dailyTrendData"
         [xAxis]="true"
         [yAxis]="true"
         [autoScale]="true"

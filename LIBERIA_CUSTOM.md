@@ -47,6 +47,7 @@ stay a fixed size as more pages are added:
 | `apps/web-mzima-client/src/assets/shapefiles/liberia/administrative-levels.zip` (new file) | Liberia Clan/County boundary shapefiles, copied as-is from `ireport/frontend/libs/assets/shapefiles/liberia/administrative-levels.zip` | Static asset consumed by the map component above; no backend involvement, matching the old platform's approach. |
 | `apps/web-mzima-client/src/shpjs.d.ts` (new file) | `declare module 'shpjs';` | `shpjs` ships no type declarations; this app's TS config (unlike the old Angular 8 app's) errors on untyped imports, so a minimal ambient module shim is needed. |
 | `package.json` | Added `shpjs` (boundary shapefile parsing) and `buffer` (browser `Buffer` polyfill) dependencies | `shpjs`'s dependency chain (via `jszip`) assumes Node.js `global`/`Buffer`, which this project's webpack 5 build (unlike the old app's webpack 4) no longer polyfills automatically. |
+| `package.json` | Added `pdfmake` and `html2canvas` (PDF export) dependencies, and `@types/pdfmake` (devDependency) | Neither needed a `polyfills.ts` addition (unlike `shpjs`'s `jszip` chain above): `html2canvas` is browser-native DOM screenshotting, and `pdfmake`'s browser build (`pdfmake/build/pdfmake.js` + `vfs_fonts.js`) is precompiled and self-contained. |
 | `apps/web-mzima-client/src/polyfills.ts` | `window.global = window; window.Buffer = Buffer;` (from the `buffer` package) | Required for `shpjs`/`jszip` to work in the browser under webpack 5 — see above. |
 | `apps/web-mzima-client/src/app/shared/components/fragments/deployment-details/deployment-details.component.html` | Removed the `<span class="menu__logo"><img src=".../ushahidi-logo.svg" ...></span>` block (this component is shared by both the desktop sidebar and the mobile burger menu) | PBO wants the generic "Ushahidi" platform branding logo hidden — it's separate from the deployment's own logo/name (`<app-company-info>`, gated by `checkAllowedAccessToSite()`, still below it and unaffected). `ushahidi-logo.svg` itself is left in place (unused, harmless) rather than deleted. |
 | `apps/web-mzima-client/src/app/shared/components/toolbar/toolbar.component.html` | Removed the `<app-language>...</app-language>` block from `.toolbar__controls` | iReport Liberia is a single-language (English) deployment — the language switcher serves no purpose. `language.component.ts`/`.html`/`.scss` and its `shared.module.ts` declaration/export are left in place (unused, harmless) rather than deleted. |
@@ -107,22 +108,55 @@ thin-layer approach:
 
 ## Analysis / Analysis Templates
 
-Replaces the old UNICC fork's `/dashboard/analysis` (Dashboard + Analysis
-tabs) and `/dashboard/analysis-templates`. The old platform used the
-commercial **Flexmonster** pivot-table widget and `pdfmake`/`html2canvas`
-PDF export — none of that is ported. Charts use `@swimlane/ngx-charts`
+Replaces the old UNICC fork's `/dashboard/analysis` (an inner "Dashboard" +
+"Analysis" tabbed page) and `/dashboard/analysis-templates`. The old
+platform used the commercial **Flexmonster** pivot-table widget for its
+report builder — that is *not* ported; charts use `@swimlane/ngx-charts`
 (already a project dependency, used by the stock `activity/bar-chart`
-component) and tabs use `mat-tab-group`.
+component) and tabs use `mat-tab-group`. Parity with Flexmonster's
+arbitrary drag-and-drop pivoting is instead achieved via a working
+per-attribute group-by (see the `EloquentPostRepository.php` row in
+`ushahidi-api/LIBERIA_CUSTOM.md`), multi-chart reports (an array of
+single-dimension charts, rather than one arbitrary 2D crosstab), and a
+small embedded choropleth map view. PDF export (`pdfmake` + `html2canvas`,
+the same two open-source libraries the old platform used) **is** ported.
 
 New isolated files (no stock-file diff beyond the table above):
 
 | File | Purpose |
 |---|---|
 | `apps/web-mzima-client/src/app/core/guards/access-analysis.guard.ts` | Route guard checking `Permissions.AccessAnalysis` from `localStorage`, same pattern as `manage-settings.guard.ts`. |
-| `apps/web-mzima-client/src/app/analysis/**` | `/analysis` page — a `mat-tab-group` shell (`analysis.component.ts`) with a **Dashboard** tab (total reports stat, reports-by-county pie chart, reports-trend line chart — reads `mgmt_lev_1`/`mgmt_lev_2`, aggregated client-side from a filtered post list, plus `GET posts/stats`) and a **Report Builder** tab (ad-hoc filter/group-by/chart-type builder against `GET posts/stats`, with "Save as Template" / "Load Template"). Includes a small `save-template-dialog/` for naming a new template. |
+| `apps/web-mzima-client/src/app/analysis/**` | `/analysis` page — a `mat-tab-group` shell (`analysis.component.ts`) with a **Dashboard** tab (total reports stat, reports-by-county pie chart, monthly + daily reports-trend line charts with prev/next year/month navigation, an All/Custom date-filter mode, and an independent survey selector scoping just the trend charts) and a **Report Builder** tab (ad-hoc filter/group-by/chart-type builder against `GET posts/stats`, with status/tag filters, a dynamic per-survey attribute picker, multi-chart reports via "+ Add another chart", a "Show map" toggle, PDF export, and "Save as Template" / "Load Template"). Includes `save-template-dialog/` (name a new template) and `report-map/` (the map toggle's embedded choropleth, see below). |
+| `apps/web-mzima-client/src/app/analysis/analysis-pdf-export.service.ts` | `html2canvas` snapshot of the report container → `pdfmake` PDF, download. Ports the old platform's `post-analysis.component.ts`'s `generatePdf()`. |
+| `apps/web-mzima-client/src/app/analysis/report-map/**` | Small, standalone Leaflet choropleth (not a reuse of the full page-level `MapComponent`, which is wired to global filter/results state) for the Report Builder's "Show map" toggle — colors counties/districts by report count. Reuses the same `assets/shapefiles/liberia/administrative-levels.zip` asset and `shpjs` parsing approach as `map.component.ts`'s `addBoundaryLayers()`. Purely presentational, driven by `@Input() charts`. |
 | `apps/web-mzima-client/src/app/analysis-templates/**` | `/analysis-templates` page — lists all saved templates (`AnalysisTemplatesService`), with Apply (deep-links to `/analysis?template=<id>`), Edit (`rename-template-dialog/`), and Delete (via the stock `ConfirmModalService`) actions. |
-| `libs/sdk/src/lib/services/analysis-templates.service.ts` | CRUD SDK client for `analysis_templates` (`v5/analysis-templates`), generic `ResourceService<T>`-based, same shape as `alerts.service.ts`. |
+| `libs/sdk/src/lib/services/analysis-templates.service.ts` | CRUD SDK client for `analysis_templates` (`v5/analysis-templates`), generic `ResourceService<T>`-based, same shape as `alerts.service.ts`. Also exports the `AnalysisChartConfig`/`AnalysisChartType`/`AnalysisGroupBy` types shared by `analysis/` and `analysis-templates/` (one chart panel's config; a template's `report_config` is `AnalysisChartConfig[]`). |
 | `apps/web-mzima-client/src/assets/icons/chart-bar.svg` | Nav icon, same style/viewBox as the other icons in this set. |
+
+**Multi-chart template shape**: a saved template's `report_config` field
+(`AnalysisChartConfig[]`) is an array of `{group_by, group_by_attribute_key?,
+chart_type}`, one entry per chart panel — the ngx-charts equivalent of the
+old platform's "+ Add more charts". `status_filter`/`tags_filter` are
+template-wide (apply to every chart in `report_config`), mirroring the old
+platform's `FilterCriteria` having `region`/`category` as siblings of
+`reportConfig[]` rather than nested inside it. See the
+`20260702000001_liberia_analysis_templates_multi_chart.php` row in
+`ushahidi-api/LIBERIA_CUSTOM.md` for the backend schema this maps to, and
+`migration/migrate-liberia-analysis-templates.php` (same repo) for how the
+old platform's Flexmonster-JSON templates were best-effort ported into this
+shape.
+
+**Dashboard trend-chart caveat**: the old platform had a dedicated
+`posts/dashboardtrend` backend endpoint taking literal `date_month`/
+`date_year` params. The new stack has no equivalent, so
+`analysis-dashboard-tab.component.ts`'s monthly/daily trend charts
+approximate it via `posts/stats`'s `timeline`/`timeline_interval`
+bucketing, bounded by `created_after`/`created_before` for the selected
+year (monthly chart) or month (daily chart). `timeline_interval: 2629800`
+(≈1 calendar month in seconds) for the monthly chart is an approximation,
+not exact calendar-month buckets — acceptable for a 12-point yearly trend,
+but worth knowing if bucket boundaries ever look off by a day near
+month-end.
 
 Both pages are gated end-to-end: nav link hidden unless
 `isLoggedIn && Access analysis` (see `menu-list-links` row above), routes

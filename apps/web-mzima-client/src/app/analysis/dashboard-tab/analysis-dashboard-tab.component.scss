@@ -1,8 +1,11 @@
 .dashboard-tab {
   padding: 16px 0;
 
-  .filters {
+  .filters,
+  .trend-filters {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
     margin-bottom: 16px;
   }
@@ -39,6 +42,24 @@
       h2 {
         font-size: 16px;
         margin-bottom: 8px;
+      }
+
+      &__nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        h2 {
+          margin-bottom: 0;
+        }
+      }
+
+      &__nav-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
       }
     }
   }
