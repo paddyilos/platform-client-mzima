@@ -391,6 +391,11 @@ export class MapComponent extends MainViewComponent implements OnInit {
               this.mapLayers.push(geoPosts);
             }
 
+            // This batch of markers is now visible on the map — stop blocking
+            // the view even if more pages are still loading in the
+            // background; the progress bar below already communicates that.
+            this.isLoading = false;
+
             if (
               this.params.limit &&
               pageNumber &&
@@ -402,7 +407,6 @@ export class MapComponent extends MainViewComponent implements OnInit {
               this.getPostsGeoJson(pageNumber, filter);
             } else {
               this.progress = 100;
-              this.isLoading = false;
               if (posts.results.length) {
                 this.mapFitToBounds = geoPosts.getBounds();
 
