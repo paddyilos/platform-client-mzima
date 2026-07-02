@@ -1,3 +1,5 @@
+@import 'helpers';
+
 .report-builder-tab {
   padding: 16px 0;
 
@@ -8,6 +10,23 @@
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+
+    // Global `.mat-form-field { width: 100% }` (src/styles/_forms.scss)
+    // otherwise forces every field onto its own row — bound their width on
+    // desktop so the whole bar fits on one horizontal line. Below $tablet
+    // (touch-friendlier), fields keep the default full-width stack.
+    @include breakpoint-min($tablet) {
+      mat-form-field {
+        width: auto;
+        flex: 0 1 200px;
+      }
+
+      // Survey select (first field in .filters) tends to hold longer form
+      // names than the date/status/tags fields next to it.
+      mat-form-field:nth-of-type(1) {
+        flex-basis: 260px;
+      }
+    }
   }
 
   .data-status {

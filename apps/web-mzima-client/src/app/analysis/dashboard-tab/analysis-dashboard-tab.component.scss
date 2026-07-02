@@ -1,3 +1,5 @@
+@import 'helpers';
+
 .dashboard-tab {
   padding: 16px 0;
 
@@ -8,6 +10,41 @@
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+
+    // Global `.mat-form-field { width: 100% }` (src/styles/_forms.scss)
+    // otherwise forces every field onto its own row — bound their width on
+    // desktop so the whole bar fits on one horizontal line. Below $tablet
+    // (touch-friendlier), fields keep the default full-width stack.
+    @include breakpoint-min($tablet) {
+      mat-form-field {
+        width: auto;
+        flex: 0 1 220px;
+      }
+
+      // The date-range field (second mat-form-field in .filters, shown only
+      // when filterMode === 'custom') needs more room than a plain select.
+      mat-form-field:nth-of-type(2) {
+        flex-basis: 280px;
+      }
+    }
+  }
+
+  .filters {
+    @include breakpoint-min($tablet) {
+      // Global `.mat-radio-group .mat-radio-button { display: block }`
+      // stacks "All"/"Custom" vertically — lay them out inline instead so
+      // the group is a single row item alongside the other filters.
+      .mat-radio-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: 0;
+
+        .mat-radio-button {
+          display: inline-flex;
+        }
+      }
+    }
   }
 
   .stat-card {
