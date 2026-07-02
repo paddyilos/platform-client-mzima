@@ -253,10 +253,23 @@ isolation principle: one separate route file, registered once.
 
 ## Staying in sync with upstream
 
+Merge from upstream's latest **release** branch, not `development` (or `develop` for
+`ushahidi-api`) — `development` moves continuously and pulls in unreviewed/unreleased work,
+whereas a `release/*` branch is a stable, tagged snapshot. Check
+`https://github.com/ushahidi/platform-client-mzima/branches` (or `git branch -a | grep
+release/`) for the newest one before merging; as of this writing that's `release/2026.21`
+(`release/2025.04` for `ushahidi-api`).
+
 ```bash
 git fetch upstream
-git merge upstream/development   # or upstream/develop for ushahidi-api
+git merge upstream/release/2026.21   # replace with whatever is newest; release/2025.04 for ushahidi-api
 ```
 
-Expect conflicts only in the small number of stock files listed above —
+Locale files (`src/assets/locales/*.json`) are the one place conflicts are expected on every
+sync even outside the stock-file list — Transifex bot commits land on `development` between
+release cuts, so our branch's translations for a key are often newer/more complete than a
+release branch's snapshot of the same key. Resolve those by keeping our side (`HEAD`), not
+upstream's.
+
+Expect conflicts otherwise only in the small number of stock files listed above —
 everything else is additive, isolated directories.
