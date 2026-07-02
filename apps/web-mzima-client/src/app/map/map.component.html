@@ -11,6 +11,9 @@
     [value]="progress"
     *ngIf="progress < 100"
   ></mat-progress-bar>
+  <div class="map-loading-overlay" *ngIf="isLoading">
+    <app-spinner class="map-loading-overlay__spinner"></app-spinner>
+  </div>
   <div
     class="map"
     *ngIf="mapReady"

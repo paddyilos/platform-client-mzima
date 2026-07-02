@@ -71,6 +71,7 @@ export class MapComponent extends MainViewComponent implements OnInit {
   filtersSubscription$: Observable<any>;
   public leafletOptions: MapOptions;
   public progress = 0;
+  public isLoading = false;
   public isFiltersVisible: boolean;
   public isMainFiltersOpen: boolean;
   private boundaryLayerControl?: Control.Layers;
@@ -223,6 +224,9 @@ export class MapComponent extends MainViewComponent implements OnInit {
   }
 
   getPostsGeoJson(pageNumber: number = 1, filter?: any) {
+    if (pageNumber === 1) {
+      this.isLoading = true;
+    }
     this.postsService
       .getGeojson({ ...this.params, page: pageNumber })
       .pipe(untilDestroyed(this))
@@ -398,6 +402,7 @@ export class MapComponent extends MainViewComponent implements OnInit {
               this.getPostsGeoJson(pageNumber, filter);
             } else {
               this.progress = 100;
+              this.isLoading = false;
               if (posts.results.length) {
                 this.mapFitToBounds = geoPosts.getBounds();
 
@@ -410,6 +415,8 @@ export class MapComponent extends MainViewComponent implements OnInit {
                 localStorage.setItem('bounds', JSON.stringify(bounds));
               }
             }
+          } else {
+            this.isLoading = false;
           }
 
           // if (posts.results.length && this.params.page <= this.params.limit) {
@@ -417,6 +424,7 @@ export class MapComponent extends MainViewComponent implements OnInit {
           // }
         },
         error: (err) => {
+          this.isLoading = false;
           if (err.message.match(/Http failure response for/)) {
             setTimeout(() => this.getPostsGeoJson(), 5000);
           }

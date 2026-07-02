@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
 import { TranslateModule } from '@ngx-translate/core';
-import { DirectiveModule } from '@shared';
+import { DirectiveModule, SpinnerModule } from '@shared';
 import { MapRoutingModule } from './map-routing.module';
 import { MapComponent } from './map.component';
 import { PostDetailsModalComponent } from './post-details-modal/post-details-modal.component';
@@ -27,6 +27,7 @@ import { MzimaUiModule } from '@mzima-client/mzima-ui';
     TranslateModule,
     DirectiveModule,
     MzimaUiModule,
+    SpinnerModule,
   ],
 })
 export class MapModule {}
