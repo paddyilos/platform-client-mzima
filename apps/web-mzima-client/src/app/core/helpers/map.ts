@@ -1,6 +1,4 @@
-// import { EnvService } from '@services';
 import { divIcon, marker } from 'leaflet';
-import { EnvService } from '../services/env.service';
 
 export const pointIcon = (color: string, type: string = 'default') => {
   // Test string to make sure that it does not contain injection
@@ -28,18 +26,27 @@ export const pointToLayer = (feature: any, latlng: any) => {
   });
 };
 
-export const mapboxStaticTiles = (name: string, mapid: string, code: string, visible = true) => {
+export const osmStreetsTiles = (name: string, code: string, visible = true) => {
   return {
     name,
-    url: 'https://api.mapbox.com/styles/v1/{mapid}/tiles/{z}/{x}/{y}?access_token={apikey}',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     layerOptions: {
-      apikey: EnvService.ENV.mapbox_api_key,
-      tileSize: 512,
-      maxZoom: 22, // "Default zoom level" input field in general settings
-      zoomOffset: -1,
-      mapid: mapid,
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+    },
+    visible,
+    code,
+  };
+};
+
+export const esriSatelliteTiles = (name: string, code: string, visible = true) => {
+  return {
+    name,
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    layerOptions: {
+      maxZoom: 19,
       attribution:
-        '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+        '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community',
     },
     visible,
     code,
@@ -49,21 +56,16 @@ export const mapboxStaticTiles = (name: string, mapid: string, code: string, vis
 export const getMapLayers = () => {
   return {
     baselayers: {
-      satellite: mapboxStaticTiles('Satellite', 'mapbox/satellite-v9', 'satellite'),
-      MapQuestAerial: mapboxStaticTiles(
-        'Satellite',
-        'mapbox/satellite-v9',
-        'MapQuestAerial',
-        false,
-      ),
-      streets: mapboxStaticTiles('Streets', 'mapbox/streets-v11', 'streets'),
-      MapQuest: mapboxStaticTiles('Streets', 'mapbox/streets-v11', 'MapQuest', false),
+      satellite: esriSatelliteTiles('Satellite', 'satellite'),
+      MapQuestAerial: esriSatelliteTiles('Satellite', 'MapQuestAerial', false),
+      streets: osmStreetsTiles('Streets', 'streets'),
+      MapQuest: osmStreetsTiles('Streets', 'MapQuest', false),
       hOSM: {
         name: 'Humanitarian',
         url: '//{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
         layerOptions: {
           attribution:
-            '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>, &copy; <a href="http://hot.openstreetmap.org/">Humanitarian OpenStreetMap</a> | <a href="https://www.mapbox.com/feedback/" target="_blank">Improve the underlying map</a>',
+            '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>, &copy; <a href="http://hot.openstreetmap.org/">Humanitarian OpenStreetMap</a>',
         },
         visible: true,
         code: 'hOSM',
