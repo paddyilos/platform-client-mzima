@@ -33,7 +33,7 @@
               (selected)="selectCategory($event)"
               [category]="category"
               [data-qa]="
-                category.slug.split(' ').join('-') + '-' + '(' + category.parent.slug + ')'
+                category.slug.split(' ').join('-') + '-' + '(' + category.parent?.slug + ')'
                   | lowercase
               "
               [customClass]="'category-item__title--lvl2'"

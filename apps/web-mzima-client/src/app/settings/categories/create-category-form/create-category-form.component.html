@@ -14,6 +14,16 @@
     </app-settings-header>
   </div>
 
+  <div
+    class="create-form__generic-errors"
+    *ngIf="genericFormErrors.length"
+    [data-qa]="'category-form-errors'"
+  >
+    <mat-error *ngFor="let err of genericFormErrors">
+      <ng-container *ngFor="let msg of err?.error_messages">{{ msg | translate }}</ng-container>
+    </mat-error>
+  </div>
+
   <ng-container
     *ngIf="!selectedTranslation || selectedTranslation === defaultLanguage?.code; else translation"
   >

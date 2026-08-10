@@ -986,6 +986,7 @@
     "complete_draft": "Complete (Draft)",
     "complete_published": "Complete (Published)",
     "structure": "Structure",
+    "id": "ID: {{id}}",
     "source": "via {{source}}",
     "visible_to_public": "This post is visible to the public",
     "visible_to_you": "This post is visible to just you and admins",

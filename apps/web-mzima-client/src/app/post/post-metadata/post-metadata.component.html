@@ -15,6 +15,10 @@
     </span>
 
     <div class="post-info__list">
+      <span class="post-info__item" [data-qa]="'post-id'">
+        {{ 'post.id' | translate : { id: post.id } }}
+      </span>
+
       <span class="post-info__item" [data-qa]="'post-date'">
         {{ post.post_date | dateAgo }}
       </span>

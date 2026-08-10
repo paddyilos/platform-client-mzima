@@ -44,6 +44,10 @@ export class CreateCategoryFormComponent extends BaseComponent implements OnInit
   private userRole: string;
   public formErrors: any[] = [];
 
+  public get genericFormErrors(): any[] {
+    return (this.formErrors || []).filter((err) => err?.field !== 'tag');
+  }
+
   constructor(
     protected override sessionService: SessionService,
     protected override breakpointService: BreakpointService,
