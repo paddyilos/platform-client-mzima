@@ -45,6 +45,32 @@
         </span>
       </div>
 
+      <div class="post-info__item" *ngIf="post.incident_status">
+        <span
+          class="post-info__incident-status"
+          [ngClass]="'post-info__incident-status--' + post.incident_status"
+          [data-qa]="'incident-status'"
+        >
+          <ng-container [ngSwitch]="post.incident_status">
+            <ng-container *ngSwitchCase="'verification_in_progress'">{{
+              'incident_status.verification_in_progress' | translate
+            }}</ng-container>
+            <ng-container *ngSwitchCase="'unverified'">{{
+              'incident_status.unverified' | translate
+            }}</ng-container>
+            <ng-container *ngSwitchCase="'verified'">{{
+              'incident_status.verified' | translate
+            }}</ng-container>
+            <ng-container *ngSwitchCase="'responded'">{{
+              'incident_status.responded' | translate
+            }}</ng-container>
+            <ng-container *ngSwitchCase="'evaluated'">{{
+              'incident_status.evaluated' | translate
+            }}</ng-container>
+          </ng-container>
+        </span>
+      </div>
+
       <span class="post-info__item">{{ 'post.source' | translate : { source: post.source } }}</span>
     </div>
   </div>

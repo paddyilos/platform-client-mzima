@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { IncidentStatus } from '@mzima-client/sdk';
 
 export const statuses = [
   {
@@ -19,6 +20,19 @@ export const statuses = [
 ];
 
 export const loggedOutStatuses = [statuses[0]];
+
+// Liberia PBO custom field — admin-only Incident Status filter, independent
+// of `statuses` above. See LIBERIA_CUSTOM.md.
+export const incidentStatuses = [
+  {
+    value: IncidentStatus.VerificationInProgress,
+    name: 'incident_status.verification_in_progress',
+  },
+  { value: IncidentStatus.Unverified, name: 'incident_status.unverified' },
+  { value: IncidentStatus.Verified, name: 'incident_status.verified' },
+  { value: IncidentStatus.Responded, name: 'incident_status.responded' },
+  { value: IncidentStatus.Evaluated, name: 'incident_status.evaluated' },
+];
 
 export const sources = [
   {
@@ -119,6 +133,8 @@ export const sortingOptions = [
 export const DEFAULT_FILTERS = {
   query: [''],
   status: [['published', 'draft']],
+  // Liberia PBO custom field — admin-only Incident Status filter, independent of `status`.
+  incident_status: [[]],
   tags: [[]],
   source: [[]],
   form: [[]],

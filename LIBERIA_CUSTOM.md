@@ -70,6 +70,16 @@ stay a fixed size as more pages are added:
 | `apps/web-mzima-client/src/app/settings/categories/create-category-form/create-category-form.component.html` / `.ts` / `.scss` | New `genericFormErrors` getter + a generic error banner rendering any `failed_validations` entry whose `field !== 'tag'` | The category edit form only ever rendered `tag`-field validation errors; a real backend validation failure on `role` (`child_parent_role_match`, fired when assigning a parent whose role differs) had no UI at all. Discovered while root-causing why parent assignment silently failed to persist for ~13 duplicate-named migrated categories (their `tag` uniqueness failure was the primary blocker, but this errors-are-invisible gap made *any* backend validation rejection on this form undiagnosable) — see `ushahidi-api/LIBERIA_CUSTOM.md`'s dedup migration entry. |
 | `apps/web-mzima-client/src/app/settings/categories/categories.component.html` | Changed `category.parent.slug` to `category.parent?.slug` in the nested child's `[data-qa]` binding | Defensive null-safety for a stock backend bug (see `ushahidi-api/LIBERIA_CUSTOM.md`'s `Category::children()` entry): a category's `parent` object could be missing from the API response depending on resolution order, and the unguarded property access threw during change detection, blanking that category's entire row in the Settings → Categories tree. The backend fix addresses the root cause; this keeps a `[data-qa]` test-hook attribute from ever being able to crash real rendering again. |
 | `docker/nginx.default.conf` | New `location /assets/locales/ { add_header Cache-Control "no-cache"; }` block | Confirmed live on production: this file had no `Cache-Control` header at all, so browsers applied their own heuristic caching and kept serving a stale, pre-deploy copy of `en.json` (missing the just-added `post.id` key above) without ever revalidating — even though the server's actual content was already correct. Same category of file as `/index.html`/`/env.json` just above (static path, no content hash, content can change between deploys) — those two already get `no-cache` upstream (`3a8f01e2 "chore(docker): mark non-cacheable resources"`), `assets/locales/` was just never added to that list. `no-cache` (not `no-store`) still lets browsers cache the response but forces revalidation via ETag/Last-Modified on every use. |
+| `libs/sdk/src/lib/models/posts.interface.ts` | New `IncidentStatus` enum (alongside the existing `PostStatus`); `incident_status`/`'incident_status[]'` fields added to `PostResult`/`PostPropertiesInterface`/`GeoJsonFilter` | Admin-only Incident Status field, independent of `PostStatus`. Single source of truth every consumer below imports from — see the "Incident Status" section below for why it's decoupled from `status` rather than folded into `PostStatus`. |
+| `libs/sdk/src/lib/services/posts.service.ts` | `updateIncidentStatus(id, incidentStatus)` method, next to the existing `updateStatus()`; `postParamsMapper()` gained a `incident_status` → `incident_status[]` block, same shape as the existing `tags`/`tags[]` one | Write path and filter-query-param mapping for the new field. |
+| `apps/web-mzima-client/src/app/core/enums/roles.ts` | `Permissions.SetIncidentStatus = 'Set incident status'` | New permission string, mirrors backend `Permission::SET_INCIDENT_STATUS`, same convention as `Permissions.AccessAnalysis`. |
+| `apps/web-mzima-client/src/app/post/post.module.ts` | Declares the new `IncidentStatusComponent` | Module registration for the new isolated component (below). |
+| `apps/web-mzima-client/src/app/post/post-head/post-head.component.ts` / `.html` | Mounts `<app-incident-status>` as its own element (not inside the existing Publish/Put-under-review/Archive `mat-menu`), gated by `user?.permissions?.includes(Permissions.SetIncidentStatus)`; new `onIncidentStatusChanged()` handler mirrors the existing `publish()`/`archive()` `EventBusService.next({ type: EventType.StatusChange, ... })` pattern | Surfaces the new control as a genuinely separate admin-only element from the stock status menu, per PBO requirement that Incident Status and Publish/Archive stay independently settable. |
+| `apps/web-mzima-client/src/app/post/post-metadata/post-metadata.component.html` / `.scss` | New `post-info__incident-status` badge, `*ngIf="post.incident_status"`, same structural pattern as the existing `post-info__status` chip | Shows the current Incident Status value without opening the edit control; already refreshes automatically via this component's existing `EventType.StatusChange` subscription (no new wiring needed there). |
+| `apps/web-mzima-client/src/app/core/helpers/search-form.ts` | New `incidentStatuses` array (imports `IncidentStatus` from the SDK rather than redeclaring values); `incident_status: [[]]` added to `DEFAULT_FILTERS` | Data source for the new filter-sidebar section below; the codebase already has one local-enum-duplication mistake (`data-import.component.ts`'s own `PostStatus`) that this avoids repeating. |
+| `apps/web-mzima-client/src/app/shared/components/search-form/search-form.component.ts` / `.html` | New `incidentStatuses` property (populated only when `isLoggedIn && user.permissions?.includes(Permissions.SetIncidentStatus)`, mirroring the existing `statuses`/`loggedOutStatuses` swap in `loadData()`); one more `<app-filter-control formControlName="incident_status">` block, reusing the existing generic `filter-control` component unmodified; `getActiveFilters()` gained an `'incident_status[]'` entry, gated by `this.incidentStatuses.length` (not just forwarding `values.incident_status` unconditionally) | Admin-only "Incident Status" filter section, separate from the existing "Status" filter. The `incidentStatuses.length` gate on `getActiveFilters()` matters even though the section is UI-hidden for unprivileged users: `MainViewComponent` (base of `FeedComponent`/`MapComponent`) restores its own `params` straight from the same `USH_filters` `localStorage` key on construction and feeds it through `PostsService.applyFilters()` with no permission awareness at all — found live, a stale `incident_status` value cached during an earlier admin session in the same browser otherwise leaks into a logged-out visitor's request. The real fix is the matching backend permission gate on the search filter itself (see `ushahidi-api/LIBERIA_CUSTOM.md`'s `EloquentPostRepository` entry) — this frontend gate is defense-in-depth, not the boundary. |
+| `libs/sdk/src/lib/helpers/api.ts` | `incident_status` added to `ONLY.NEEDED_POSTS_LIST_PROPERTIES` | The feed/data-view list request explicitly whitelists which fields it fetches per post (unlike the single-post `GET /posts/{id}` call, which returns everything `Post::ALLOWED_FIELDS` allows). Without this, the Incident Status dropdown/badge showed correctly on the single-post detail view but not on feed list cards. |
+| `apps/web-mzima-client/src/assets/locales/en.json` | New top-level `incident_status` block (`label`/`not_set`/`verification_in_progress`/`unverified`/`verified`/`responded`/`evaluated`); `global_filter.incident_status` key added next to the existing `global_filter.status` | i18n strings for the control, badge, and filter section above. |
 
 **Adding a new Liberia public page:** add an entry to
 `apps/web-mzima-client/src/app/liberia/liberia.routes.ts`, create the
@@ -249,6 +259,46 @@ in; pass `query` as `''`, never `undefined` — Angular's `HttpClient`
 serializes an `undefined` param value as the literal string `"undefined"`,
 which the backend's full-text search then treats as a real (zero-match)
 search term, silently returning an empty result set.
+
+## Incident Status
+
+Restores the legacy UNICC fork's admin-only "Incident Status" workflow field (its
+6-button status group — Pending/Verification in progress/Unverified/Verified/
+Responded/Evaluated — plus a *separate* publish on/off switch decoupled from that
+group), which had no equivalent on this fork. Confirmed live in the old fork's
+`post-detail-actions.component.html`/`.ts`: an incident's workflow status and its
+public-visibility state are two independent controls there, not one. This fork's
+stock `status` (published/draft/archived) is a single mutually-exclusive value that
+also drives visibility — folding the new values into it would have broken that
+independence — so Incident Status is instead a brand-new, fully independent
+`incident_status` field end to end (new DB column, new SDK enum/field, new admin-only
+control), never touching the stock Publish/Put-under-review/Archive workflow. See the
+matching "Incident Status" section in `ushahidi-api/LIBERIA_CUSTOM.md` for the backend
+half (new column, permission, patch-endpoint extension, and — importantly — a
+read-side permission gate on the search filter, not just the write path).
+
+The admin-only control (`apps/web-mzima-client/src/app/post/incident-status/`, a new
+isolated component) is mounted as its own element in `post-head.component.html`,
+deliberately *not* inside the existing Publish/Put-under-review/Archive `mat-menu` —
+per PBO's explicit requirement that the two stay independently settable and visible.
+Current value is also shown as a small badge in `post-metadata.component.html` (same
+`post-info__status`-style chip pattern, new `post-info__incident-status` sibling), and
+is filterable via its own "Incident Status" section in the filter sidebar, separate
+from the existing "Status" filter — all three surfaces gated by
+`user.permissions?.includes(Permissions.SetIncidentStatus)`.
+
+**Worth knowing if you touch this code:** `MainViewComponent` (the shared base of
+`FeedComponent`/`MapComponent`) restores cached filters straight from the
+`USH_filters` `localStorage` key at construction time and pushes them through
+`PostsService.applyFilters()` with no permission awareness — a stale `incident_status`
+value cached during an earlier admin session in the same browser can otherwise leak
+into what an unprivileged/logged-out visitor's request asks for. The frontend gates
+this defensively (`search-form.component.ts`'s `getActiveFilters()`), but the actual
+enforcement boundary is server-side: `EloquentPostRepository::setSearchCondition()`
+only applies the `incident_status` `whereIn` for a user who holds `Set incident
+status`, the same enforcement model `setGuestConditions()` already uses to force
+`status='published'` for guests regardless of what they ask for — see
+`ushahidi-api/LIBERIA_CUSTOM.md`.
 
 ## get-alerts / contact-us backend
 

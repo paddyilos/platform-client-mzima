@@ -36,6 +36,8 @@ export interface GeoJsonFilter {
   'source[]'?: string[];
   'tags[]'?: string[];
   'status[]'?: string[];
+  // Liberia PBO custom field — admin-only Incident Status, independent of status[].
+  'incident_status[]'?: string[];
   'form[]'?: string[];
   created_before_by_id?: string;
   center_point?: string;
@@ -56,6 +58,7 @@ export interface PostPropertiesInterface {
   user?: PostPropertiesUser;
   author_realname?: string;
   status?: PostStatus;
+  incident_status?: IncidentStatus | null;
   contact?: any;
   source?: string;
   locks?: any[];
@@ -78,6 +81,16 @@ export enum PostStatus {
   Published = 'published',
   Draft = 'draft',
   Archived = 'archived',
+}
+
+// Liberia PBO custom field — admin-only Incident Status, independent of
+// PostStatus (published/draft/archived). See LIBERIA_CUSTOM.md.
+export enum IncidentStatus {
+  VerificationInProgress = 'verification_in_progress',
+  Unverified = 'unverified',
+  Verified = 'verified',
+  Responded = 'responded',
+  Evaluated = 'evaluated',
 }
 
 export interface PostResult {
@@ -104,6 +117,7 @@ export interface PostResult {
   slug: string;
   source?: string;
   status: PostStatus;
+  incident_status?: IncidentStatus | null;
   tags: PostTag[];
   title: string;
   type: string;

@@ -759,6 +759,7 @@
     "date_range": "Date range",
     "who_its_visible_to": "Who it's visible to",
     "status": "Status",
+    "incident_status": "Incident Status",
     "source": "Source",
     "saved_filters": "Saved filters",
     "saved_filter": "Saved filter",
@@ -1205,6 +1206,15 @@
         "special_lat": "Field latitude contains special characters"
       }
     }
+  },
+  "incident_status": {
+    "label": "Incident Status",
+    "not_set": "Not set",
+    "verification_in_progress": "Pending Verification in progress",
+    "unverified": "Unverified",
+    "verified": "Verified",
+    "responded": "Responded",
+    "evaluated": "Evaluated"
   },
   "role": {
     "are_you_sure_you_want_to_delete_role": "Are you sure you want to delete role {{roleName}}?",

@@ -350,6 +350,32 @@
         </div>
       </app-filter-control>
 
+      <!-- Liberia PBO custom field — admin-only Incident Status filter, independent
+           of the `status` filter above. See LIBERIA_CUSTOM.md. -->
+      <app-filter-control
+        class="search-form__filters-panel__item"
+        *ngIf="incidentStatuses.length"
+        formControlName="incident_status"
+        [options]="incidentStatuses"
+        [fields]="['value', 'name']"
+        [type]="filterType.Multiselect"
+        (clear)="clearFilter('incident_status')"
+        [title]="'global_filter.incident_status' | translate"
+        [badge]="form.controls['incident_status'].value?.length || null"
+        [data-qa]="'incident-status-filter'"
+      >
+        <div class="clear-button" suffix>
+          <mzima-client-button
+            fill="clear"
+            size="small"
+            class="filter-group__head__button"
+            (buttonClick)="clearFilter('incident_status')"
+          >
+            {{ 'nav.clear' | translate }}
+          </mzima-client-button>
+        </div>
+      </app-filter-control>
+
       <app-filter-control
         class="search-form__filters-panel__item"
         *ngIf="categoriesData?.length"

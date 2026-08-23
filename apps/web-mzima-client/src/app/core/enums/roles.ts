@@ -17,4 +17,6 @@ export enum Permissions {
   DeleteOwnPosts = 'Delete Their Own Posts',
   // Liberia PBO custom permission — gates the Analysis dashboard/templates feature.
   AccessAnalysis = 'Access analysis',
+  // Liberia PBO custom permission — gates setting the admin-only Incident Status field.
+  SetIncidentStatus = 'Set incident status',
 }

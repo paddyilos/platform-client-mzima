@@ -69,6 +69,10 @@ export class PostsService extends ResourceService<any> {
   updateStatus(id: string | number, status: string) {
     return super.patch(id, { status });
   }
+  // Liberia PBO custom field — admin-only Incident Status, independent of `status`.
+  updateIncidentStatus(id: string | number, incidentStatus: string | null) {
+    return super.patch(id, { incident_status: incidentStatus });
+  }
   updateTranslations(id: string, post: any) {
     return super.update(id, post);
   }
@@ -226,6 +230,11 @@ export class PostsService extends ResourceService<any> {
       postParams['source[]'] = postParams['source'];
     if (postParams.tags?.length) {
       postParams['tags[]'] = postParams.tags;
+    }
+    // Liberia PBO custom field — admin-only Incident Status filter,
+    // independent of status[]. See LIBERIA_CUSTOM.md.
+    if (postParams.incident_status?.length) {
+      postParams['incident_status[]'] = postParams.incident_status;
     }
 
     // Allocate start and end dates, and remove originals

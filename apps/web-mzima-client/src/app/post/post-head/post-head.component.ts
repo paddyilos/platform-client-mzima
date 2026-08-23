@@ -8,6 +8,7 @@ import { BaseComponent } from '../../base.component';
 import { ShareModalComponent } from '../../shared/components';
 import { PostResult, PostsService, PostStatus, postHelpers } from '@mzima-client/sdk';
 import { ConfirmModalService } from '../../core/services/confirm-modal.service';
+import { Permissions } from '@enums';
 
 @Component({
   selector: 'app-post-head',
@@ -16,6 +17,7 @@ import { ConfirmModalService } from '../../core/services/confirm-modal.service';
 })
 export class PostHeadComponent extends BaseComponent implements OnInit {
   PostStatus = PostStatus;
+  Permissions = Permissions;
   @Input() public post: PostResult;
   @Input() public editable: boolean;
   @Input() public feedView: boolean;
@@ -112,6 +114,14 @@ export class PostHeadComponent extends BaseComponent implements OnInit {
         type: EventType.StatusChange,
         payload: this.post,
       });
+    });
+  }
+
+  onIncidentStatusChanged(post: PostResult) {
+    this.post = post;
+    this.eventBusService.next({
+      type: EventType.StatusChange,
+      payload: this.post,
     });
   }
 

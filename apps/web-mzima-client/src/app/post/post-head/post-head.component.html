@@ -10,6 +10,13 @@
     <span class="post-info__status post-info__status--draft" [data-qa]="'post_lock'">Locked</span>
   </div>
 
+  <app-incident-status
+    *ngIf="user?.permissions?.includes(Permissions.SetIncidentStatus)"
+    [post]="post"
+    (statusChanged)="onIncidentStatusChanged($event)"
+    (click)="$event.stopPropagation()"
+  ></app-incident-status>
+
   <mzima-client-button
     fill="clear"
     color="gray"

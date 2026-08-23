@@ -1,0 +1,20 @@
+<mat-form-field appearance="outline" class="incident-status" [data-qa]="'incident-status-field'">
+  <mat-label>{{ 'incident_status.label' | translate }}</mat-label>
+  <mat-select
+    [formControl]="control"
+    (selectionChange)="onChange($event.value)"
+    disableOptionCentering
+    [data-qa]="'incident-status-select'"
+  >
+    <mat-option [value]="null" [data-qa]="'incident-status-not-set'">
+      {{ 'incident_status.not_set' | translate }}
+    </mat-option>
+    <mat-option
+      *ngFor="let status of incidentStatuses"
+      [value]="status.value"
+      [data-qa]="status.value"
+    >
+      {{ status.name | translate }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>

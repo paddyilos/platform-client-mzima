@@ -106,6 +106,39 @@
       background-color: var(--color-neutral-100);
     }
   }
+
+  // Liberia PBO custom field — admin-only Incident Status badge, independent
+  // of __status above. See LIBERIA_CUSTOM.md.
+  &__incident-status {
+    display: block;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: var(--color-light);
+
+    &--verification_in_progress {
+      background-color: var(--color-accent);
+    }
+
+    &--unverified {
+      background-color: var(--color-neutral-70);
+    }
+
+    &--verified {
+      // Deliberately not --color-primary-60 — that's the same token the
+      // stock "Under review" (draft) status badge uses, and the two badges
+      // often render side by side, so an identical color would make them
+      // indistinguishable at a glance.
+      background-color: var(--color-primary-30);
+    }
+
+    &--responded {
+      background-color: var(--color-info);
+    }
+
+    &--evaluated {
+      background-color: var(--color-success);
+    }
+  }
 }
 
 .post {

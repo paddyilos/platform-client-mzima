@@ -38,6 +38,7 @@ import {
   GeoJsonFilter,
   apiHelpers,
 } from '@mzima-client/sdk';
+import { Permissions } from '@enums';
 import dayjs from 'dayjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
@@ -64,6 +65,9 @@ export class SearchFormComponent extends BaseComponent implements OnInit {
   public savedSearches: Savedsearch[];
   public surveyList: SurveyItem[] = [];
   public statuses = loggedOutStatuses;
+  // Liberia PBO custom field — admin-only Incident Status filter, independent of `statuses`.
+  public incidentStatuses: typeof searchFormHelper.incidentStatuses = [];
+  public readonly Permissions = Permissions;
   public sources = searchFormHelper.sources;
   public categoriesData: MultilevelSelectOption[];
   public activeSavedSearch?: Savedsearch;
@@ -222,6 +226,11 @@ export class SearchFormComponent extends BaseComponent implements OnInit {
     } else {
       this.statuses = searchFormHelper.loggedOutStatuses;
     }
+
+    this.incidentStatuses =
+      this.isLoggedIn && this.user?.permissions?.includes(Permissions.SetIncidentStatus)
+        ? searchFormHelper.incidentStatuses
+        : [];
   }
 
   private initFilters() {
@@ -370,6 +379,12 @@ export class SearchFormComponent extends BaseComponent implements OnInit {
     const filters: GeoJsonFilter = {
       'source[]': values.source,
       'status[]': values.status,
+      // Liberia PBO custom field — admin-only Incident Status filter,
+      // independent of status[]. Only forwarded when the filter section
+      // itself is visible (isLoggedIn + permission) — otherwise a stale
+      // value from a previous admin session would silently affect an
+      // unprivileged/logged-out user's results. See LIBERIA_CUSTOM.md.
+      'incident_status[]': this.incidentStatuses.length ? values.incident_status : undefined,
       'form[]': values.form,
       'tags[]': values.tags,
       currentView: this.isMapView ? 'map' : 'feed',

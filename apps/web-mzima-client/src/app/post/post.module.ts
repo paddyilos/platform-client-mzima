@@ -41,6 +41,7 @@ import { PostNotAllowedComponent } from './post-not-allowed/post-not-allowed.com
 import { PostConversationComponent } from './post-conversation/post-conversation.component';
 import { PostTranslateComponent } from './post-translate/post-translate.component';
 import { PostTranslatedComponent } from './post-translated/post-translated.component';
+import { IncidentStatusComponent } from './incident-status/incident-status.component';
 
 @NgModule({
   declarations: [
@@ -57,6 +58,7 @@ import { PostTranslatedComponent } from './post-translated/post-translated.compo
     PostConversationComponent,
     PostTranslateComponent,
     PostTranslatedComponent,
+    IncidentStatusComponent,
   ],
   imports: [
     CommonModule,
