@@ -74,7 +74,7 @@ stay a fixed size as more pages are added:
 | `libs/sdk/src/lib/services/posts.service.ts` | `updateIncidentStatus(id, incidentStatus)` method, next to the existing `updateStatus()`; `postParamsMapper()` gained a `incident_status` → `incident_status[]` block, same shape as the existing `tags`/`tags[]` one | Write path and filter-query-param mapping for the new field. |
 | `apps/web-mzima-client/src/app/core/enums/roles.ts` | `Permissions.SetIncidentStatus = 'Set incident status'` | New permission string, mirrors backend `Permission::SET_INCIDENT_STATUS`, same convention as `Permissions.AccessAnalysis`. |
 | `apps/web-mzima-client/src/app/post/post.module.ts` | Declares the new `IncidentStatusComponent` | Module registration for the new isolated component (below). |
-| `apps/web-mzima-client/src/app/post/post-head/post-head.component.ts` / `.html` | Mounts `<app-incident-status>` as its own element (not inside the existing Publish/Put-under-review/Archive `mat-menu`), gated by `user?.permissions?.includes(Permissions.SetIncidentStatus)`; new `onIncidentStatusChanged()` handler mirrors the existing `publish()`/`archive()` `EventBusService.next({ type: EventType.StatusChange, ... })` pattern | Surfaces the new control as a genuinely separate admin-only element from the stock status menu, per PBO requirement that Incident Status and Publish/Archive stay independently settable. |
+| `apps/web-mzima-client/src/app/post/post-head/post-head.component.ts` / `.html` | Mounts `<app-incident-status>` as its own element (not inside the existing Publish/Put-under-review/Archive `mat-menu`), gated by `user?.permissions?.includes(Permissions.SetIncidentStatus)`; new `onIncidentStatusChanged()` handler mirrors the existing `publish()`/`archive()` `EventBusService.next({ type: EventType.StatusChange, ... })` pattern | Surfaces the new control as a genuinely separate, permission-gated element from the stock status menu, per PBO requirement that Incident Status and Publish/Archive stay independently settable. |
 | `apps/web-mzima-client/src/app/post/post-metadata/post-metadata.component.html` / `.scss` | New `post-info__incident-status` badge, `*ngIf="post.incident_status"`, same structural pattern as the existing `post-info__status` chip | Shows the current Incident Status value without opening the edit control; already refreshes automatically via this component's existing `EventType.StatusChange` subscription (no new wiring needed there). |
 | `apps/web-mzima-client/src/app/core/helpers/search-form.ts` | New `incidentStatuses` array (imports `IncidentStatus` from the SDK rather than redeclaring values); `incident_status: [[]]` added to `DEFAULT_FILTERS` | Data source for the new filter-sidebar section below; the codebase already has one local-enum-duplication mistake (`data-import.component.ts`'s own `PostStatus`) that this avoids repeating. |
 | `apps/web-mzima-client/src/app/shared/components/search-form/search-form.component.ts` / `.html` | New `incidentStatuses` property (populated only when `isLoggedIn && user.permissions?.includes(Permissions.SetIncidentStatus)`, mirroring the existing `statuses`/`loggedOutStatuses` swap in `loadData()`); one more `<app-filter-control formControlName="incident_status">` block, reusing the existing generic `filter-control` component unmodified; `getActiveFilters()` gained an `'incident_status[]'` entry, gated by `this.incidentStatuses.length` (not just forwarding `values.incident_status` unconditionally) | Admin-only "Incident Status" filter section, separate from the existing "Status" filter. The `incidentStatuses.length` gate on `getActiveFilters()` matters even though the section is UI-hidden for unprivileged users: `MainViewComponent` (base of `FeedComponent`/`MapComponent`) restores its own `params` straight from the same `USH_filters` `localStorage` key on construction and feeds it through `PostsService.applyFilters()` with no permission awareness at all — found live, a stale `incident_status` value cached during an earlier admin session in the same browser otherwise leaks into a logged-out visitor's request. The real fix is the matching backend permission gate on the search filter itself (see `ushahidi-api/LIBERIA_CUSTOM.md`'s `EloquentPostRepository` entry) — this frontend gate is defense-in-depth, not the boundary. |
@@ -262,22 +262,28 @@ search term, silently returning an empty result set.
 
 ## Incident Status
 
-Restores the legacy UNICC fork's admin-only "Incident Status" workflow field (its
-6-button status group — Pending/Verification in progress/Unverified/Verified/
-Responded/Evaluated — plus a *separate* publish on/off switch decoupled from that
-group), which had no equivalent on this fork. Confirmed live in the old fork's
+Restores the legacy UNICC fork's "Incident Status" workflow field (its 6-button status
+group — Pending/Verification in progress/Unverified/Verified/Responded/Evaluated — plus a
+*separate* publish on/off switch decoupled from that group), which had no equivalent on
+this fork. Not admin-only in legacy — see the matching "Incident Status" section in
+`ushahidi-api/LIBERIA_CUSTOM.md` for the full role allowlist
+(`admin`/`super`/`Management User`/`operatoruser`) this fork now matches via
+`20260824000001_liberia_extend_incident_status_permission_roles.php`; the frontend gate
+below (`user.permissions?.includes(Permissions.SetIncidentStatus)`) was already
+role-agnostic and needed no change to honor the wider grant. Confirmed live in the old fork's
 `post-detail-actions.component.html`/`.ts`: an incident's workflow status and its
 public-visibility state are two independent controls there, not one. This fork's
 stock `status` (published/draft/archived) is a single mutually-exclusive value that
 also drives visibility — folding the new values into it would have broken that
 independence — so Incident Status is instead a brand-new, fully independent
-`incident_status` field end to end (new DB column, new SDK enum/field, new admin-only
-control), never touching the stock Publish/Put-under-review/Archive workflow. See the
+`incident_status` field end to end (new DB column, new SDK enum/field, new
+permission-gated control), never touching the stock Publish/Put-under-review/Archive
+workflow. See the
 matching "Incident Status" section in `ushahidi-api/LIBERIA_CUSTOM.md` for the backend
 half (new column, permission, patch-endpoint extension, and — importantly — a
 read-side permission gate on the search filter, not just the write path).
 
-The admin-only control (`apps/web-mzima-client/src/app/post/incident-status/`, a new
+The permission-gated control (`apps/web-mzima-client/src/app/post/incident-status/`, a new
 isolated component) is mounted as its own element in `post-head.component.html`,
 deliberately *not* inside the existing Publish/Put-under-review/Archive `mat-menu` —
 per PBO's explicit requirement that the two stay independently settable and visible.
